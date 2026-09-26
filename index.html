@@ -3,22 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGIS Cadastral 2D & 3D</title>
+    <title>WebGIS Cadastral 2D & 3D - Sistem Informasi Pertanahan</title>
 
-    <!-- Cross-Origin Frame Patch: Fixes MapLibre SecurityError when embedded in sandboxed/iframe previews -->
+    <!-- Cross-Origin Frame Patch: Fixes MapLibre SecurityError when embedded in sandboxed previews -->
     <script>
         (function() {
             try {
-                Object.defineProperty(window, 'top', {
-                    get: function() { return window; },
-                    configurable: true
-                });
+                Object.defineProperty(window, 'top', { get: function() { return window; }, configurable: true });
             } catch (e) {}
             try {
-                Object.defineProperty(window, 'parent', {
-                    get: function() { return window; },
-                    configurable: true
-                });
+                Object.defineProperty(window, 'parent', { get: function() { return window; }, configurable: true });
             } catch (e) {}
         })();
     </script>
@@ -97,11 +91,11 @@
         .modal-overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.82); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; }
         .modal-box { background: #0f172a; border: 1px solid #334155; width: 100%; max-width: 380px; padding: 24px; border-radius: 16px; position: relative; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.7); }
         .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; }
-        .error-msg { color: #f43f5e; font-size: 11px; margin-top: 4px; display: none; }
+        .error-msg { color: #f43f5e; font-size: 11px; margin-top: 6px; display: none; line-height: 1.4; word-break: break-word; }
         .hidden { display: none !important; }
 
         .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #cbd5e1; margin-bottom: 5px; }
-        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+        .legend-color { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
         /* Compliance Box Styles */
         .status-box-rth { padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; }
@@ -110,6 +104,39 @@
 
         .rth-progress-bar { width: 100%; height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden; margin-top: 6px; }
         .rth-progress-fill { height: 100%; transition: width 0.3s ease; }
+
+        .search-container { position: relative; margin-bottom: 6px; }
+        .search-input { width: 100%; background: #1e293b; color: #f8fafc; border: 1px solid #334155; padding: 8px 32px 8px 10px; border-radius: 6px; font-size: 12px; outline: none; transition: border-color 0.2s; }
+        .search-input:focus { border-color: #0284c7; }
+        .search-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 12px; pointer-events: none; }
+        .search-results { position: absolute; top: 100%; left: 0; right: 0; background: #0f172a; border: 1px solid #334155; border-radius: 8px; max-height: 180px; overflow-y: auto; z-index: 50; box-shadow: 0 10px 25px rgba(0,0,0,0.7); margin-top: 4px; }
+        .search-result-item { padding: 8px 10px; border-bottom: 1px solid #1e293b; font-size: 11px; cursor: pointer; transition: background 0.15s; }
+        .search-result-item:hover { background: #1e293b; color: #38bdf8; }
+
+        /* Tabel Atribut Data Asal (Auto-Mapping saat Import) */
+        .extra-attrs-wrap { margin-top: 10px; margin-bottom: 12px; border: 1px solid #334155; border-radius: 8px; overflow: hidden; background: rgba(15, 23, 42, 0.6); }
+        .extra-attrs-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; cursor: pointer; background: rgba(30, 41, 59, 0.7); user-select: none; }
+        .extra-attrs-header span.title { font-size: 10px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.3px; }
+        .extra-attrs-header span.count { font-size: 9px; color: #94a3b8; background: #1e293b; border: 1px solid #334155; padding: 1px 6px; border-radius: 10px; margin-left: 6px; }
+        .extra-attrs-header i.chev { color: #94a3b8; transition: transform 0.15s; font-size: 11px; }
+        .extra-attrs-body { max-height: 220px; overflow-y: auto; }
+        .extra-attrs-table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+        .extra-attrs-table tr:not(:last-child) td { border-bottom: 1px solid #1e293b; }
+        .extra-attrs-table td { padding: 6px 10px; vertical-align: top; color: #e2e8f0; }
+        .extra-attrs-table td.key { color: #94a3b8; width: 42%; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .extra-attrs-table td.val { word-break: break-word; }
+        .extra-attrs-empty { padding: 10px; font-size: 10.5px; color: #64748b; text-align: center; }
+
+        /* Custom Hover Popup Styling */
+        .maplibregl-popup-content { background: #0f172a !important; color: #f8fafc !important; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.6); font-size: 11px; line-height: 1.5; }
+        .maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #0f172a !important; }
+        .maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: #0f172a !important; }
+        .maplibregl-popup-close-button { color: #94a3b8 !important; padding: 4px 8px !important; font-size: 14px !important; }
+
+        @media (max-width: 768px) {
+            .panel-container-left, .panel-container-right { width: calc(100% - 32px); max-height: 42vh; }
+            .panel-container-attr { right: 16px; left: 16px; width: auto; }
+        }
     </style>
 </head>
 <body>
@@ -127,8 +154,8 @@
             
             <div style="display: flex; align-items: center; gap: 6px; margin-top: 12px;">
                 <button id="mode-btn-info" class="btn btn-mode-active">Mode Info</button>
-                <button id="mode-btn-editor" class="btn btn-mode-inactive btn-disabled" title="Login untuk membuka Mode Editor">
-                    Editor <i class="fa-solid fa-lock" style="font-size:10px;"></i>
+                <button id="mode-btn-editor" class="btn btn-mode-inactive hidden" title="Login untuk mengakses Mode Editor">
+                    Editor
                 </button>
             </div>
             <div style="margin-top: 8px;">
@@ -136,30 +163,80 @@
             </div>
         </div>
 
-        <div class="card-panel stats-grid">
-            <div class="stat-box">
-                <div style="color: #94a3b8; font-size: 10px; font-weight: 600; text-transform: uppercase;">Total Objek</div>
-                <div id="stat-total-parcels" class="stat-value">0</div>
+        <div class="card-panel">
+            <span style="font-size: 10px; font-weight: bold; color: #38bdf8; text-transform: uppercase; display: block; margin-bottom: 6px;"><i class="fa-solid fa-magnifying-glass"></i> Cari NIB / Pemilik / Jalan</span>
+            <div class="search-container">
+                <input type="text" id="search-input" class="search-input" placeholder="Ketik NIB, Pemilik, atau Nama Jalan...">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <div id="search-results" class="search-results hidden"></div>
             </div>
-            <div class="stat-box">
-                <div style="color: #94a3b8; font-size: 10px; font-weight: 600; text-transform: uppercase;">Pelanggaran RTH</div>
-                <div id="stat-violations" class="stat-value" style="color: #f43f5e;">0</div>
+
+            <span style="font-size: 9px; color: #94a3b8; display: block; margin-top: 6px; margin-bottom: 4px;">Filter Zona Spesifik:</span>
+            <select id="filter-zona-select" class="select-input" style="margin-bottom: 6px;">
+                <option value="ALL">-- Semua Zona Perda --</option>
+                <option value="Komersial">Komersial</option>
+                <option value="Permukiman">Permukiman</option>
+                <option value="Industri">Industri</option>
+                <option value="Fasilitas Umum">Fasilitas Umum</option>
+            </select>
+
+            <div style="display: flex; gap: 6px; margin-top: 6px;">
+                <button id="btn-filter-violations" class="btn btn-mode-inactive" style="flex: 1; font-size: 10px; padding: 6px 8px;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color: #f43f5e;"></i> Filter Pelanggaran
+                </button>
+                <button id="btn-reset-filter" class="btn btn-mode-inactive" style="font-size: 10px; padding: 6px 8px;">
+                    <i class="fa-solid fa-rotate"></i> Reset
+                </button>
             </div>
         </div>
 
-        <!-- Legenda Zona & RTH -->
+        <div class="card-panel stats-grid" style="grid-template-columns: repeat(3, 1fr); gap: 6px;">
+            <div class="stat-box" style="padding: 8px 4px;">
+                <div style="color: #94a3b8; font-size: 9px; font-weight: 600; text-transform: uppercase;">Total Bidang</div>
+                <div id="stat-total-bidang" class="stat-value" style="font-size: 16px;">0</div>
+            </div>
+            <div class="stat-box" style="padding: 8px 4px;">
+                <div style="color: #94a3b8; font-size: 9px; font-weight: 600; text-transform: uppercase;">Total Bangunan</div>
+                <div id="stat-total-bangunan" class="stat-value" style="font-size: 16px; color: #38bdf8;">0</div>
+            </div>
+            <div class="stat-box" style="padding: 8px 4px;">
+                <div style="color: #94a3b8; font-size: 9px; font-weight: 600; text-transform: uppercase;">Pelanggaran KDB/RTH</div>
+                <div id="stat-violations" class="stat-value" style="font-size: 16px; color: #f43f5e;">0</div>
+            </div>
+        </div>
+
         <div class="card-panel">
-            <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 8px;">Legenda Zona & RTH</span>
-            <div class="legend-item"><div class="legend-color" style="background: #f59e0b;"></div> Komersial (Min 20% RTH)</div>
-            <div class="legend-item"><div class="legend-color" style="background: #0284c7;"></div> Permukiman (Min 30% RTH)</div>
-            <div class="legend-item"><div class="legend-color" style="background: #a855f7;"></div> Industri (Min 15% RTH)</div>
-            <div class="legend-item"><div class="legend-color" style="background: #10b981;"></div> Fasilitas Umum (Min 25% RTH)</div>
+            <span style="font-size: 10px; font-weight: bold; color: #38bdf8; text-transform: uppercase; display: block; margin-bottom: 6px;"><i class="fa-solid fa-ruler-combined"></i> Pengukuran Spasial</span>
+            <div style="display: flex; gap: 6px;">
+                <button id="btn-measure-distance" class="btn btn-mode-inactive" style="flex: 1; font-size: 10px; padding: 6px 8px;">
+                    <i class="fa-solid fa-ruler"></i> Ukur Jarak
+                </button>
+                <button id="btn-measure-area" class="btn btn-mode-inactive" style="flex: 1; font-size: 10px; padding: 6px 8px;">
+                    <i class="fa-solid fa-draw-polygon"></i> Ukur Luas
+                </button>
+            </div>
+            <div id="measure-result" style="font-size: 11px; color: #a7f3d0; margin-top: 6px; font-weight: bold; text-align: center; min-height: 16px;"></div>
+        </div>
+
+        <div class="card-panel">
+            <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 8px;">Legenda Peruntukan Lahan 2D</span>
+            <div class="legend-item"><div class="legend-color" style="background: transparent; border: 2px dashed #f59e0b;"></div> Batas Wilayah / AOI</div>
+            <div class="legend-item"><div class="legend-color" style="background: #f59e0b;"></div> Zone Komersial (Min 20% RTH)</div>
+            <div class="legend-item"><div class="legend-color" style="background: #0284c7;"></div> Zone Permukiman (Min 30% RTH)</div>
+            <div class="legend-item"><div class="legend-color" style="background: #a855f7;"></div> Zone Industri (Min 15% RTH)</div>
+            <div class="legend-item"><div class="legend-color" style="background: #10b981;"></div> Zone Fasilitas Umum (Min 25% RTH)</div>
+            <div class="legend-item"><div class="legend-color" style="background: #a7f3d0; height: 4px;"></div> Infrastruktur Jalan (2D Line)</div>
+
+            <span style="font-size: 10px; font-weight: bold; color: #38bdf8; text-transform: uppercase; display: block; margin-top: 10px; margin-bottom: 8px;">Warna Bangunan 3D (Fungsi)</span>
+            <div class="legend-item"><div class="legend-color" style="background: #38bdf8; border: 1px solid #0284c7;"></div> Rumah / Permukiman</div>
+            <div class="legend-item"><div class="legend-color" style="background: #f59e0b; border: 1px solid #d97706;"></div> Komersial / Usaha</div>
+            <div class="legend-item"><div class="legend-color" style="background: #a855f7; border: 1px solid #7e22ce;"></div> Industri / Pabrik</div>
+            <div class="legend-item"><div class="legend-color" style="background: #10b981; border: 1px solid #047857;"></div> Fasilitas Umum</div>
         </div>
     </div>
 
     <!-- UI Panel Kanan -->
     <div class="panel-container-right">
-        <!-- Pengaturan Layer Visibility -->
         <div class="card-panel">
             <span style="font-size: 10px; font-weight: bold; color: #38bdf8; text-transform: uppercase; display: block; margin-bottom: 6px;">Pengaturan Layer</span>
             <div class="layer-toggle-group">
@@ -168,7 +245,7 @@
                     <input type="checkbox" id="chk-layer-2d" checked>
                 </label>
                 <label class="layer-toggle-item">
-                    <span>Bangunan (3D)</span>
+                    <span>Bangunan (3D Extrusion)</span>
                     <input type="checkbox" id="chk-layer-3d" checked>
                 </label>
                 <label class="layer-toggle-item">
@@ -193,16 +270,18 @@
 
         <div class="card-panel">
             <button id="btn-export-geojson" class="btn-action-info"><i class="fa-solid fa-file-arrow-down"></i> Ekspor GeoJSON</button>
+            <button id="btn-export-csv" class="btn-action-info" style="color: #f59e0b;"><i class="fa-solid fa-file-csv"></i> Ekspor Laporan CSV</button>
             <button id="btn-screenshot-png" class="btn-action-info"><i class="fa-solid fa-camera"></i> Tangkap Layar PNG</button>
             <button id="btn-print-pdf" class="btn-action-info"><i class="fa-solid fa-file-pdf" style="color: #10b981;"></i> Cetak Peta ke PDF</button>
         </div>
 
-        <!-- PANEL TOOLS EDITOR (HANYA MUNCUL DI MODE EDITOR) -->
+        <!-- PANEL TOOLS EDITOR -->
         <div id="digitize-buttons-container" class="card-panel hidden">
             <span style="font-size: 10px; font-weight: bold; color: #f59e0b; text-transform: uppercase; display: block; margin-bottom: 8px;">Tools Editor & Digitasi</span>
             
             <input type="file" id="input-import-2d" accept=".zip,.geojson,.json" class="hidden">
             <input type="file" id="input-import-3d" accept=".zip,.geojson,.json" class="hidden">
+            <input type="file" id="input-import-jalan" accept=".zip,.geojson,.json" class="hidden">
             <input type="file" id="input-import-aoi" accept=".zip,.geojson,.json" class="hidden">
 
             <span style="font-size: 9px; color: #94a3b8; display: block; margin: 4px 0;">1. Digitasi Peta</span>
@@ -211,9 +290,10 @@
             <button id="btn-draw-3d" class="btn-action-info" style="color: #38bdf8;"><i class="fa-solid fa-cubes"></i> + Gambar Bangunan 3D</button>
 
             <span style="font-size: 9px; color: #94a3b8; display: block; margin: 8px 0 4px 0;">2. Import File (SHP Zip / GeoJSON)</span>
-            <button onclick="document.getElementById('input-import-2d').click()" class="btn-action-info"><i class="fa-solid fa-upload"></i> Upload Persil 2D</button>
-            <button onclick="document.getElementById('input-import-3d').click()" class="btn-action-info" style="color: #38bdf8;"><i class="fa-solid fa-building"></i> Upload Bangunan 3D (Z=3m)</button>
-            <button onclick="document.getElementById('input-import-aoi').click()" class="btn-action-info" style="color: #f59e0b;"><i class="fa-solid fa-vector-square"></i> Upload Batas AOI</button>
+            <button id="btn-upload-2d" class="btn-action-info"><i class="fa-solid fa-upload"></i> Upload Persil 2D</button>
+            <button id="btn-upload-road" class="btn-action-info" style="color: #a7f3d0;"><i class="fa-solid fa-road"></i> Upload Data Jalan (2D Line/String)</button>
+            <button id="btn-upload-3d" class="btn-action-info" style="color: #38bdf8;"><i class="fa-solid fa-building"></i> Upload Bangunan 3D</button>
+            <button id="btn-upload-aoi" class="btn-action-info" style="color: #f59e0b;"><i class="fa-solid fa-vector-square"></i> Upload Batas AOI</button>
 
             <span style="font-size: 9px; color: #94a3b8; display: block; margin: 8px 0 4px 0;">3. Manajemen Data</span>
             <button id="btn-select-bulk-delete" class="btn-action-info btn-danger">
@@ -224,29 +304,31 @@
         <div class="card-panel camera-nav-bar">
             <button id="float-btn-2d" class="btn-cam">2D</button>
             <button id="float-btn-3d" class="btn-cam btn-cam-active">3D</button>
+            <button id="btn-locate-me" class="btn-cam" title="Lokasi Saya"><i class="fa-solid fa-crosshairs"></i></button>
             <button id="btn-rotate-ccw" class="btn-cam"><i class="fa-solid fa-rotate-left"></i></button>
             <button id="btn-rotate-cw" class="btn-cam"><i class="fa-solid fa-rotate-right"></i></button>
             <button id="btn-reset-north" class="btn-cam"><i class="fa-solid fa-compass"></i></button>
         </div>
     </div>
 
-
-    <!-- 1. PANEL ATRIBUT BIDANG TANAH -->
+    <!-- PANEL ATRIBUT BIDANG TANAH -->
     <div id="panel-attr-bidang" class="panel-container-attr hidden">
         <div class="card-panel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 8px;">
                 <h3 style="font-size: 14px; font-weight: bold; color: #38bdf8;"><i class="fa-solid fa-sliders"></i> Detail Bidang Tanah</h3>
-                <button onclick="closeAllAttrPanels()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size: 16px;"><i class="fa-solid fa-xmark"></i></button>
+                <button id="btn-close-attr-bidang" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size: 16px;"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- Status Box RTH -->
             <div id="bidang-rth-status-box" class="status-box-rth compliant">
                 <div style="font-weight: bold; display: flex; align-items: center; gap: 6px;" id="bidang-rth-status-title">
-                    <i class="fa-solid fa-circle-check"></i> PATUH ATURAN RTH
+                    <i class="fa-solid fa-circle-check"></i> PATUH ATURAN KDB & RTH
                 </div>
                 <div id="bidang-rth-status-desc" style="margin-top: 4px; opacity: 0.9;">
                     RTH Realisasi memenuhi standar minimal Perda.
                 </div>
+                <button id="btn-view-violation-detail" class="hidden" style="margin-top: 8px; width: 100%; background: #be123c; color: #fff; border: none; padding: 7px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> Lihat Estimasi Denda & Detail Pelanggaran
+                </button>
             </div>
 
             <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">NOMOR INDUK BIDANG (NIB)</label>
@@ -266,19 +348,21 @@
             <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">LUAS LAHAN / BIDANG TANAH (M²)</label>
             <input type="text" id="attr-bidang-luas" class="form-input" readonly>
 
-            <!-- Kalkulasi RTH & KDB -->
             <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; padding: 10px; border-radius: 8px; margin-top: 8px; margin-bottom: 12px;">
                 <div style="font-size: 11px; font-weight: bold; color: #cbd5e1; display: flex; justify-content: space-between;">
-                    <span>Hasil Perhitungan RTH & KDB</span>
+                    <span>Kalkulasi Bangunan 3D & KDB Spasial</span>
                     <i class="fa-solid fa-calculator" style="color: #38bdf8;"></i>
+                </div>
+                <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">
+                    Tapak Bangunan 3D di Atas Bidang: <span id="calc-bgn-count" style="color:#38bdf8; font-weight:bold;">0 Unit</span> (<span id="calc-bgn-area" style="color:#38bdf8; font-weight:bold;">0 m²</span>)
                 </div>
                 <div class="grid-2col" style="margin-top: 8px; font-size: 11px;">
                     <div>
-                        <span style="color: #94a3b8; font-size: 9px; display: block;">Tutupan (KDB)</span>
+                        <span style="color: #94a3b8; font-size: 9px; display: block;">Tutupan Lahan (KDB)</span>
                         <span id="calc-kdb-val" style="font-weight: bold; color: #f8fafc;">0.0%</span>
                     </div>
                     <div>
-                        <span style="color: #94a3b8; font-size: 9px; display: block;">Luas RTH</span>
+                        <span style="color: #94a3b8; font-size: 9px; display: block;">Luas RTH Tersisa</span>
                         <span id="calc-rth-area" style="font-weight: bold; color: #f8fafc;">0.0 m²</span>
                     </div>
                 </div>
@@ -293,20 +377,29 @@
                 </div>
             </div>
 
-            <!-- Action buttons (Editor Mode Only) -->
+            <div id="bidang-extra-attrs-wrap" class="extra-attrs-wrap hidden">
+                <div class="extra-attrs-header" id="bidang-extra-attrs-toggle">
+                    <span><span class="title"><i class="fa-solid fa-table-list"></i> Atribut Data Asal (Import)</span><span class="count" id="bidang-extra-attrs-count">0</span></span>
+                    <i class="fa-solid fa-chevron-down chev" id="bidang-extra-attrs-chev"></i>
+                </div>
+                <div class="extra-attrs-body hidden" id="bidang-extra-attrs-body">
+                    <table class="extra-attrs-table"><tbody id="bidang-extra-attrs-table"></tbody></table>
+                </div>
+            </div>
+
             <div id="editor-actions-bidang" class="hidden" style="display: flex; gap: 8px;">
                 <button id="btn-save-bidang" class="btn btn-success" style="flex: 1;"><i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan</button>
-                <button id="btn-delete-bidang" class="btn btn-logout" style="flex: 1;"><i class="fa-solid fa-trash"></i> Hapus Bidang Ini</button>
+                <button id="btn-delete-bidang" class="btn btn-logout" style="flex: 1;"><i class="fa-solid fa-trash"></i> Hapus Bidang</button>
             </div>
         </div>
     </div>
 
-    <!-- 2. PANEL ATRIBUT BANGUNAN 3D -->
+    <!-- PANEL ATRIBUT BANGUNAN 3D -->
     <div id="panel-attr-bangunan" class="panel-container-attr hidden">
         <div class="card-panel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 8px;">
                 <h3 style="font-size: 14px; font-weight: bold; color: #38bdf8;"><i class="fa-solid fa-cubes"></i> Atribut Bangunan 3D</h3>
-                <button onclick="closeAllAttrPanels()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size: 16px;"><i class="fa-solid fa-xmark"></i></button>
+                <button id="btn-close-attr-bangunan" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size: 16px;"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div style="font-size: 10px; color: #94a3b8; margin-bottom: 10px;" id="bgn-id-tag">ID: -</div>
 
@@ -326,22 +419,35 @@
 
             <div class="grid-2col">
                 <div>
-                    <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">Tinggi Bangunan 3D (m)</label>
-                    <input type="number" id="attr-bgn-tinggi" class="form-input" value="12" min="1" max="300">
+                    <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">Jumlah Lantai</label>
+                    <input type="number" id="attr-bgn-lantai" class="form-input" value="1" min="1" max="100">
                 </div>
                 <div>
-                    <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">Elevasi Z (m)</label>
-                    <input type="number" id="attr-bgn-z" class="form-input" value="3" readonly>
+                    <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">Tinggi 3D (m)</label>
+                    <input type="number" id="attr-bgn-tinggi" class="form-input" value="3" readonly>
                 </div>
             </div>
 
-            <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">Fungsi Bangunan</label>
+            <label style="font-size: 10px; color: #38bdf8; font-weight: 600;">FUNGSI BANGUNAN (WARNA 3D)</label>
             <select id="attr-bgn-fungsi" class="select-input">
-                <option value="Rumah / Permukiman">Rumah / Permukiman</option>
-                <option value="Komersial / Usaha">Komersial / Usaha</option>
-                <option value="Industri / Pabrik">Industri / Pabrik</option>
-                <option value="Fasilitas Umum">Fasilitas Umum</option>
+                <option value="Rumah / Permukiman">Rumah / Permukiman (Biru Sky)</option>
+                <option value="Komersial / Usaha">Komersial / Usaha (Kuning Amber)</option>
+                <option value="Industri / Pabrik">Industri / Pabrik (Ungu Purple)</option>
+                <option value="Fasilitas Umum">Fasilitas Umum (Hijau Emerald)</option>
             </select>
+
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; padding: 10px; border-radius: 8px; margin-top: 4px; margin-bottom: 10px;">
+                <div style="font-size: 11px; font-weight: bold; color: #f59e0b; display: flex; justify-content: space-between;">
+                    <span>Estimasi Nilai NJOP Bangunan</span>
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+                <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">
+                    Total Luas Lantai: <span id="zon-total-floor-area" style="color:#f8fafc; font-weight:bold;">0 m²</span>
+                </div>
+                <div style="font-size: 12px; font-weight: bold; color: #10b981; margin-top: 4px;" id="zon-estimated-val">
+                    Rp 0
+                </div>
+            </div>
 
             <div class="grid-2col">
                 <div>
@@ -365,6 +471,16 @@
                 </div>
             </div>
 
+            <div id="bgn-extra-attrs-wrap" class="extra-attrs-wrap hidden">
+                <div class="extra-attrs-header" id="bgn-extra-attrs-toggle">
+                    <span><span class="title"><i class="fa-solid fa-table-list"></i> Atribut Data Asal (Import)</span><span class="count" id="bgn-extra-attrs-count">0</span></span>
+                    <i class="fa-solid fa-chevron-down chev" id="bgn-extra-attrs-chev"></i>
+                </div>
+                <div class="extra-attrs-body hidden" id="bgn-extra-attrs-body">
+                    <table class="extra-attrs-table"><tbody id="bgn-extra-attrs-table"></tbody></table>
+                </div>
+            </div>
+
             <div id="editor-actions-bangunan" class="hidden" style="display: flex; gap: 8px; margin-top: 6px;">
                 <button id="btn-save-bgn" class="btn btn-success" style="flex: 1;"><i class="fa-solid fa-floppy-disk"></i> Simpan Bangunan</button>
                 <button id="btn-delete-bgn" class="btn btn-logout" style="flex: 1;"><i class="fa-solid fa-trash"></i> Hapus Bangunan</button>
@@ -372,12 +488,12 @@
         </div>
     </div>
 
-    <!-- 3. PANEL ATRIBUT JALAN -->
+    <!-- PANEL ATRIBUT JALAN -->
     <div id="panel-attr-jalan" class="panel-container-attr hidden">
         <div class="card-panel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 8px;">
-                <h3 style="font-size: 14px; font-weight: bold; color: #a7f3d0;"><i class="fa-solid fa-road"></i> Atribut Infrastruktur Jalan</h3>
-                <button onclick="closeAllAttrPanels()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size: 16px;"><i class="fa-solid fa-xmark"></i></button>
+                <h3 style="font-size: 14px; font-weight: bold; color: #a7f3d0;"><i class="fa-solid fa-road"></i> Edit Atribut Jalan (2D Line)</h3>
+                <button id="btn-close-attr-jalan" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size: 16px;"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div style="font-size: 10px; color: #94a3b8; margin-bottom: 10px;" id="jalan-id-tag">ID: -</div>
 
@@ -395,11 +511,11 @@
             <div class="grid-2col">
                 <div>
                     <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">Lebar Jalan (m)</label>
-                    <input type="number" id="attr-jalan-lebar" class="form-input" value="8">
+                    <input type="number" id="attr-jalan-lebar" class="form-input" value="8" min="1" max="100">
                 </div>
                 <div>
-                    <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">Panjang Segment (m)</label>
-                    <input type="text" id="attr-jalan-panjang" class="form-input" readonly>
+                    <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">Panjang Segmen</label>
+                    <input type="text" id="attr-jalan-panjang" class="form-input" readonly placeholder="0 m">
                 </div>
             </div>
 
@@ -411,717 +527,1909 @@
                 <option value="Tanah / Sirtu">Tanah / Sirtu</option>
             </select>
 
-            <div id="editor-actions-jalan" class="hidden" style="display: flex; gap: 8px; margin-top: 6px;">
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; padding: 10px; border-radius: 8px; margin-top: 8px; margin-bottom: 4px;">
+                <div style="font-size: 11px; font-weight: bold; color: #a7f3d0; display: flex; justify-content: space-between;">
+                    <span>Informasi & Kalkulasi Ruas Jalan</span>
+                    <i class="fa-solid fa-road-circle-check"></i>
+                </div>
+                <div class="grid-2col" style="margin-top: 8px; font-size: 11px;">
+                    <div>
+                        <span style="color: #94a3b8; font-size: 9px; display: block;">Jumlah Titik Koordinat</span>
+                        <span id="jalan-vertex-count" style="font-weight: bold; color: #f8fafc;">0</span>
+                    </div>
+                    <div>
+                        <span style="color: #94a3b8; font-size: 9px; display: block;">Estimasi Luas Perkerasan</span>
+                        <span id="jalan-luas-perkerasan" style="font-weight: bold; color: #f8fafc;">0 m²</span>
+                    </div>
+                </div>
+                <div style="margin-top: 6px; font-size: 10px; color: #94a3b8;">
+                    Tipe Geometri: <span id="jalan-geom-type" style="color:#a7f3d0; font-weight:bold;">LineString (2D)</span>
+                </div>
+                <div style="margin-top: 2px; font-size: 10px; color: #94a3b8;">
+                    Sumber Data: <span id="jalan-sumber-data" style="color:#a7f3d0; font-weight:bold;">Data Preset</span>
+                </div>
+            </div>
+
+            <div id="jalan-extra-attrs-wrap" class="extra-attrs-wrap hidden">
+                <div class="extra-attrs-header" id="jalan-extra-attrs-toggle">
+                    <span><span class="title"><i class="fa-solid fa-table-list"></i> Atribut Data Asal (Import)</span><span class="count" id="jalan-extra-attrs-count">0</span></span>
+                    <i class="fa-solid fa-chevron-down chev" id="jalan-extra-attrs-chev"></i>
+                </div>
+                <div class="extra-attrs-body hidden" id="jalan-extra-attrs-body">
+                    <table class="extra-attrs-table"><tbody id="jalan-extra-attrs-table"></tbody></table>
+                </div>
+            </div>
+
+            <div id="editor-actions-jalan" class="hidden" style="display: flex; gap: 8px; margin-top: 8px;">
                 <button id="btn-save-jalan" class="btn btn-success" style="flex: 1;"><i class="fa-solid fa-floppy-disk"></i> Simpan Jalan</button>
                 <button id="btn-delete-jalan" class="btn btn-logout" style="flex: 1;"><i class="fa-solid fa-trash"></i> Hapus Jalan</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Login -->
+    <!-- Modals -->
     <div id="login-modal" class="modal-overlay hidden">
         <div class="modal-box">
             <button id="close-login-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
-            <h2 style="font-size: 16px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;"><i class="fa-solid fa-user-shield"></i> Login Editor WebGIS</h2>
-            <p class="subtitle" style="margin-bottom: 16px;">Masukkan akun terdaftar untuk mengaktifkan akses Mode Editor.</p>
-            
+            <h2 style="font-size: 16px; font-weight: 700; color: #38bdf8; margin-bottom: 6px;"><i class="fa-solid fa-user-lock"></i> Autentikasi Firebase Admin</h2>
+            <p style="font-size: 11px; color: #94a3b8; margin-bottom: 16px;">Masuk menggunakan akun Firebase Auth terdaftar untuk membuka akses Mode Editor & Digitasi.</p>
             <form id="login-form">
-                <div style="margin-bottom: 12px;">
-                    <label style="font-size: 11px; color: #cbd5e1; display: block; margin-bottom: 4px;">Email</label>
-                    <input type="email" id="login-email" required class="form-input" placeholder="admin@cadastral.com">
-                </div>
-                <div style="margin-bottom: 12px;">
-                    <label style="font-size: 11px; color: #cbd5e1; display: block; margin-bottom: 4px;">Password</label>
-                    <input type="password" id="login-password" required class="form-input" placeholder="******">
-                </div>
-                <div id="login-error-msg" class="error-msg">Email / Password salah!</div>
-                <button type="submit" class="btn btn-login" style="width: 100%; margin-top: 8px; padding: 10px;">Masuk Akun</button>
+                <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">EMAIL ADMIN FIREBASE</label>
+                <input type="email" id="login-email" class="form-input" placeholder="admin@domain.com" required>
+                
+                <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">KATA KUNCI</label>
+                <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
+                
+                <div id="login-error-msg" class="error-msg">Gagal autentikasi via Firebase Auth.</div>
+                
+                <button type="submit" id="btn-submit-login" class="btn btn-login" style="width: 100%; margin-top: 12px; padding: 10px;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Masuk Sistem via Firebase
+                </button>
             </form>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <div id="custom-alert-modal" class="modal-overlay hidden" style="z-index: 200;">
+        <div class="modal-box" style="max-width: 320px; text-align: center;">
+            <div id="alert-modal-icon" style="font-size: 32px; color: #38bdf8; margin-bottom: 10px;">
+                <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <p id="alert-modal-message" style="font-size: 12px; color: #f8fafc; line-height: 1.5; margin-bottom: 18px;"></p>
+            <button id="alert-modal-close-btn" class="btn btn-login" style="width: 100%;">Tutup</button>
+        </div>
+    </div>
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCTeUtOHFIsfcOl6L05Z1asfxk8ffxC38c", 
-            authDomain: "cadastral3d-f7f0c.firebaseapp.com",
-            projectId: "cadastral3d-f7f0c",
-            storageBucket: "cadastral3d-f7f0c.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
+    <div id="custom-confirm-modal" class="modal-overlay hidden" style="z-index: 200;">
+        <div class="modal-box" style="max-width: 340px; text-align: center;">
+            <div style="font-size: 32px; color: #f59e0b; margin-bottom: 10px;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <p id="confirm-modal-message" style="font-size: 12px; color: #f8fafc; line-height: 1.5; margin-bottom: 18px;"></p>
+            <div style="display: flex; gap: 8px;">
+                <button id="confirm-modal-cancel-btn" class="btn btn-mode-inactive" style="flex: 1;">Batal</button>
+                <button id="confirm-modal-ok-btn" class="btn btn-logout" style="flex: 1;">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="violation-modal" class="modal-overlay hidden" style="z-index: 200;">
+        <div class="modal-box" style="max-width: 380px;">
+            <button id="close-violation-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 22px; color: #f43f5e;"></i>
+                <h2 style="font-size: 15px; font-weight: 700; color: #f43f5e;">Pelanggaran KDB/RTH Terdeteksi</h2>
+            </div>
+            <div id="violation-modal-nib" style="font-size: 10px; color: #94a3b8; margin-bottom: 12px; line-height: 1.5;"></div>
+
+            <div id="violation-modal-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; max-height: 220px; overflow-y: auto;"></div>
+
+            <div style="background: rgba(136, 19, 55, 0.5); border: 1px solid #be123c; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px;">
+                <div style="font-size: 9px; color: #fecdd3; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Estimasi Total Denda Administratif</div>
+                <div id="violation-modal-denda" style="font-size: 18px; font-weight: 800; color: #ffffff; margin-top: 4px;">Rp 0</div>
+                <div style="font-size: 9px; color: #fecdd3; margin-top: 4px;">*Estimasi simulasi berdasarkan Perda, bukan nilai final/legal mengikat.</div>
+            </div>
+
+            <button id="violation-modal-detail-btn" class="btn btn-login" style="width: 100%;"><i class="fa-solid fa-sliders"></i> Lihat Detail Bidang</button>
+        </div>
+    </div>
+
+    <!-- Firebase Integration JS -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'cadastral-webgis-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyCTeUtOHFIsfcOl6L05Z1asfxk8ffxC38c",
+  authDomain: "cadastral3d-f7f0c.firebaseapp.com",
+  projectId: "cadastral3d-f7f0c",
+  storageBucket: "cadastral3d-f7f0c.firebasestorage.app",
+  messagingSenderId: "225615341652",
+  appId: "1:225615341652:web:293454d0090a2f9762a5c1",
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let currentUser = null;
-        let selectedFeature = null;
-        let isBulkDeleteMode = false;
-        let activeDrawType = null;
+        window.firebaseApp = { 
+            app, auth, db, appId, setDoc, deleteDoc, doc, collection, onSnapshot,
+            signInWithEmailAndPassword, signOut, onAuthStateChanged 
+        };
 
-        let cadastreData = { type: "FeatureCollection", features: [] };
-
-        const map = new maplibregl.Map({
-            container: 'map',
-            preserveDrawingBuffer: true,
-            style: {
-                version: 8,
-                sources: { 
-                    'esri-satellite': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 },
-                    'carto-dark': { type: 'raster', tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], tileSize: 256 },
-                    'osm': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256 }
-                },
-                layers: [{ id: 'base-layer', type: 'raster', source: 'esri-satellite' }]
-            },
-            center: [106.827153, -6.175392], zoom: 16, pitch: 45, antialias: true
-        });
-
-        const Draw = new MapboxDraw({ displayControlsDefault: false, controls: { polygon: true, line_string: true, trash: true } });
-        map.addControl(Draw);
-
-        map.on('load', async () => {
-            initMapLayers();
-            await loadFirestoreData();
-            setupAuthListeners();
-            setupExportAndPrintTools();
-            setupCameraControls();
-            setupLayerVisibility();
-            setupImportsAndDigitize();
-            setupClickEvents();
-        });
-
-        function initMapLayers() {
-            map.addSource('cadastre-source', { type: 'geojson', data: cadastreData });
-
-            // Layer Persil 2D Bidang
-            map.addLayer({
-                id: 'cadastre-fill',
-                type: 'fill',
-                source: 'cadastre-source',
-                filter: ['in', ['get', 'category'], ['literal', ['bidang', '2d', 'default']]],
-                paint: {
-                    'fill-color': [
-                        'match', ['get', 'zona'],
-                        'Komersial', '#f59e0b',
-                        'Industri', '#a855f7',
-                        'Fasilitas Umum', '#10b981',
-                        '#0284c7'
-                    ],
-                    'fill-opacity': 0.45
-                }
-            });
-
-            // Outline Persil
-            map.addLayer({
-                id: 'cadastre-line',
-                type: 'line',
-                source: 'cadastre-source',
-                filter: ['in', ['get', 'category'], ['literal', ['bidang', '2d', 'default']]],
-                paint: { 'line-color': '#38bdf8', 'line-width': 2 }
-            });
-
-            // Layer Bangunan 3D (Extrusion Z=3m)
-            map.addLayer({
-                id: 'cadastre-3d-extrusion',
-                type: 'fill-extrusion',
-                source: 'cadastre-source',
-                filter: ['in', ['get', 'category'], ['literal', ['bangunan', '3d']]],
-                paint: {
-                    'fill-extrusion-color': [
-                        'match', ['get', 'fungsi'],
-                        'Komersial / Usaha', '#f59e0b',
-                        'Industri / Pabrik', '#a855f7',
-                        'Fasilitas Umum', '#10b981',
-                        '#0284c7'
-                    ],
-                    'fill-extrusion-height': ['coalesce', ['get', 'height'], 12],
-                    'fill-extrusion-base': ['coalesce', ['get', 'base_height'], 3],
-                    'fill-extrusion-opacity': 0.88
-                }
-            });
-
-            // Layer Jalan
-            map.addLayer({
-                id: 'cadastre-road-line',
-                type: 'line',
-                source: 'cadastre-source',
-                filter: ['in', ['get', 'category'], ['literal', ['jalan', 'road']]],
-                paint: {
-                    'line-color': '#a7f3d0',
-                    'line-width': ['coalesce', ['get', 'lebar'], 6]
-                }
-            });
-
-            // Layer AOI (Batas Wilayah)
-            map.addLayer({
-                id: 'cadastre-aoi-line',
-                type: 'line',
-                source: 'cadastre-source',
-                filter: ['==', ['get', 'category'], 'aoi'],
-                paint: { 'line-color': '#f59e0b', 'line-width': 3, 'line-dasharray': [2, 2] }
-            });
-        }
-
-        async function loadFirestoreData() {
+        (async () => {
             try {
-                const querySnapshot = await getDocs(collection(db, "parcels"));
-                cadastreData.features = [];
-
-                querySnapshot.forEach((doc) => {
-                    let feat = doc.data();
-                    if (feat && feat.type === "Feature") {
-                        cadastreData.features.push(feat);
-                    }
-                });
-
-                refreshAllLayers();
-            } catch (err) { console.error("Error loading Firestore:", err); }
-        }
-
-        function refreshAllLayers() {
-            if (map.getSource('cadastre-source')) map.getSource('cadastre-source').setData(cadastreData);
-            document.getElementById('stat-total-parcels').innerText = cadastreData.features.length;
-
-            // Compute Violations Count
-            let violations = 0;
-            cadastreData.features.forEach(f => {
-                if ((f.properties.category === 'bidang' || f.properties.category === '2d') && f.properties.is_violation) {
-                    violations++;
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else if (!auth.currentUser) {
+                    await signInAnonymously(auth);
                 }
-            });
-            document.getElementById('stat-violations').innerText = violations;
-        }
-
-        /* Helper to Inject Z-Coordinates = 3m */
-        function injectZCoordinate(coords, zVal = 3) {
-            if (!Array.isArray(coords)) return coords;
-            if (typeof coords[0] === 'number') {
-                return [coords[0], coords[1], coords[2] !== undefined ? coords[2] : zVal];
+            } catch (err) {
+                console.warn("Firebase Auth initial setup fallback:", err);
             }
-            return coords.map(c => injectZCoordinate(c, zVal));
-        }
+        })();
+    </script>
 
-        /* Helper to Process File Import (ZIP Shapefile & GeoJSON) */
-        async function processImportedFile(file) {
-            let geojson;
-            if (file.name.toLowerCase().endsWith('.zip')) {
-                const buffer = await file.arrayBuffer();
-                geojson = await shp(buffer);
-            } else {
-                const text = await file.text();
-                geojson = JSON.parse(text);
-            }
-
-            let features = [];
-            if (Array.isArray(geojson)) {
-                geojson.forEach(g => {
-                    if (g.features) features.push(...g.features);
-                    else if (g.type === 'Feature') features.push(g);
-                });
-            } else if (geojson && geojson.type === 'FeatureCollection') {
-                features = geojson.features || [];
-            } else if (geojson && geojson.type === 'Feature') {
-                features = [geojson];
-            }
-            return features;
-        }
-
-        /* Toggle Layer Visibilities */
-        function setupLayerVisibility() {
-            document.getElementById('chk-layer-2d').addEventListener('change', (e) => {
-                map.setLayoutProperty('cadastre-fill', 'visibility', e.target.checked ? 'visible' : 'none');
-                map.setLayoutProperty('cadastre-line', 'visibility', e.target.checked ? 'visible' : 'none');
-            });
-            document.getElementById('chk-layer-3d').addEventListener('change', (e) => {
-                map.setLayoutProperty('cadastre-3d-extrusion', 'visibility', e.target.checked ? 'visible' : 'none');
-            });
-            document.getElementById('chk-layer-road').addEventListener('change', (e) => {
-                map.setLayoutProperty('cadastre-road-line', 'visibility', e.target.checked ? 'visible' : 'none');
-            });
-            document.getElementById('chk-layer-aoi').addEventListener('change', (e) => {
-                map.setLayoutProperty('cadastre-aoi-line', 'visibility', e.target.checked ? 'visible' : 'none');
-            });
-        }
-
+    <!-- App Logic Script -->
+    <script>
         window.closeAllAttrPanels = function() {
             document.getElementById('panel-attr-bidang').classList.add('hidden');
             document.getElementById('panel-attr-bangunan').classList.add('hidden');
             document.getElementById('panel-attr-jalan').classList.add('hidden');
         };
 
-        function setupClickEvents() {
-            // General click handler on features
-            const handleFeatureClick = (e) => {
-                if (isBulkDeleteMode) return;
-                const feature = e.features[0];
-                if (!feature) return;
-
-                selectedFeature = feature;
-                closeAllAttrPanels();
-
-                const cat = (feature.properties.category || '').toLowerCase();
-
-                if (cat === 'bangunan' || cat === '3d') {
-                    openBangunanPanel(feature);
-                } else if (cat === 'jalan' || cat === 'road') {
-                    openJalanPanel(feature);
-                } else {
-                    openBidangPanel(feature);
+        (function() {
+            const presetGeoJSONData = [
+                {
+                    type: "Feature",
+                    properties: { id: "aoi-korpri-raya", category: "aoi", NAMOBJ: "Korpri Raya", WADMKC: "Sukarame" },
+                    geometry: {
+                        type: "Polygon",
+                        coordinates: [[
+                            [105.305952, -5.358661], [105.305706, -5.358790], [105.305487, -5.358942],
+                            [105.305259, -5.359218], [105.304416, -5.360544], [105.303675, -5.361796],
+                            [105.304240, -5.362272], [105.305053, -5.362763], [105.304906, -5.363899],
+                            [105.304442, -5.365249], [105.304251, -5.365699], [105.303823, -5.368176],
+                            [105.303336, -5.369030], [105.298642, -5.364528], [105.300646, -5.364473],
+                            [105.301724, -5.361490], [105.303577, -5.360038], [105.306040, -5.358309],
+                            [105.305952, -5.358661]
+                        ]]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: { id: "bdg-101", category: "bidang", nib: "18.71.02.1009.0001", pemilik: "Bpk. Ahmad", zona: "Permukiman" },
+                    geometry: { type: "Polygon", coordinates: [[[105.290100, -5.369800], [105.290400, -5.369700], [105.290450, -5.369950], [105.290150, -5.370000], [105.290100, -5.369800]]] }
+                },
+                {
+                    type: "Feature",
+                    properties: { id: "bdg-102", category: "bidang", nib: "18.71.02.1009.0002", pemilik: "PT. Sukarame Jaya", zona: "Komersial" },
+                    geometry: { type: "Polygon", coordinates: [[[105.290410, -5.369830], [105.290680, -5.369750], [105.290720, -5.369950], [105.290450, -5.369990], [105.290410, -5.369830]]] }
+                },
+                {
+                    type: "Feature",
+                    properties: { id: "bgn-3d-101", category: "bangunan", nib: "18.71.02.1009.0001", fungsi: "Rumah / Permukiman", jumlah_lantai: 2, height: 6, base_height: 0 },
+                    geometry: { type: "Polygon", coordinates: [[[105.290140, -5.369830], [105.290280, -5.369780], [105.290320, -5.369900], [105.290180, -5.369940], [105.290140, -5.369830]]] }
+                },
+                {
+                    type: "Feature",
+                    properties: { id: "bgn-3d-102", category: "bangunan", nib: "18.71.02.1009.0002", fungsi: "Komersial / Usaha", jumlah_lantai: 4, height: 12, base_height: 0 },
+                    geometry: { type: "Polygon", coordinates: [[[105.290420, -5.369820], [105.290660, -5.369760], [105.290690, -5.369930], [105.290450, -5.369980], [105.290420, -5.369820]]] }
+                },
+                {
+                    type: "Feature",
+                    properties: { id: "jalan-101", category: "jalan", nama: "Jl. Sukarame Utama", fungsi: "Jalan Arteri / Utama", lebar: 10, perkerasan: "Aspal Hotmix" },
+                    geometry: { type: "LineString", coordinates: [[105.28950, -5.37060], [105.29080, -5.36950], [105.29200, -5.36870]] }
                 }
+            ];
+
+            let currentUser = null;
+            let selectedFeature = null;
+            let isBulkDeleteMode = false;
+            let activeDrawType = null;
+            let onConfirmCallback = null;
+            let isMeasurementMode = null;
+            let activePopup = null;
+            let violationsFilterActive = false;
+            let currentBidangCalcBase = null;
+
+            const ZONA_MIN_RTH = { 'Komersial': 20, 'Permukiman': 30, 'Industri': 15, 'Fasilitas Umum': 25 };
+            const NJOP_RATE_PER_M2 = {
+                'Rumah / Permukiman': 3500000,
+                'Komersial / Usaha': 5000000,
+                'Industri / Pabrik': 4000000,
+                'Fasilitas Umum': 3000000
             };
 
-            map.on('click', 'cadastre-fill', handleFeatureClick);
-            map.on('click', 'cadastre-3d-extrusion', handleFeatureClick);
-            map.on('click', 'cadastre-road-line', handleFeatureClick);
+            // Estimasi tarif denda administratif (simulasi, bukan angka legal resmi)
+            const RATE_DENDA_RTH_PER_M2 = 500000;      // Rp per m2 kekurangan RTH dari syarat minimal
+            const RATE_DENDA_MISUSE = 25000000;         // Rp per bangunan yang tidak sesuai peruntukan zona
+            const RATE_DENDA_ZERO_RTH_EKONOMI = 15000000; // Rp tambahan jika zona ekonomi sama sekali tanpa RTH
 
-            // 1. OPEN BIDANG PANEL
-            function openBidangPanel(f) {
-                const props = f.properties || {};
-                document.getElementById('attr-bidang-nib').value = props.nib || props.NIB || props.id || '-';
-                document.getElementById('attr-bidang-pemilik').value = props.pemilik || 'Pemilik Baru';
-                document.getElementById('attr-bidang-zona').value = props.zona || 'Komersial';
+            const ALLOWED_FUNGSI_BY_ZONA = {
+                'Permukiman': ['Rumah / Permukiman'],
+                'Komersial': ['Komersial / Usaha'],
+                'Industri': ['Industri / Pabrik'],
+                'Fasilitas Umum': ['Fasilitas Umum']
+            };
 
-                let areaVal = 0;
-                try { areaVal = turf.area(f).toFixed(2); } catch(err) { areaVal = 0; }
-                document.getElementById('attr-bidang-luas').value = areaVal + " m²";
+            let violationModalTarget = null;
 
-                // Calculations for RTH Compliance
-                calculateRTH(areaVal, document.getElementById('attr-bidang-zona').value, props);
+            let cadastreData = { type: "FeatureCollection", features: JSON.parse(JSON.stringify(presetGeoJSONData)) };
 
-                const panel = document.getElementById('panel-attr-bidang');
-                const actions = document.getElementById('editor-actions-bidang');
+            const basemapSources = {
+                'esri_sat': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 },
+                'carto_dark': { type: 'raster', tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], tileSize: 256 },
+                'osm': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256 }
+            };
 
-                // Read-only vs Editable Mode toggle
-                const isEditable = currentUser !== null;
-                document.getElementById('attr-bidang-nib').readOnly = !isEditable;
-                document.getElementById('attr-bidang-pemilik').readOnly = !isEditable;
-                document.getElementById('attr-bidang-zona').disabled = !isEditable;
-
-                if (isEditable) actions.classList.remove('hidden');
-                else actions.classList.add('hidden');
-
-                panel.classList.remove('hidden');
-            }
-
-            // Recalculate RTH on zone change
-            document.getElementById('attr-bidang-zona').addEventListener('change', (e) => {
-                if (!selectedFeature) return;
-                let areaVal = 0;
-                try { areaVal = turf.area(selectedFeature).toFixed(2); } catch(err) { areaVal = 0; }
-                calculateRTH(areaVal, e.target.value, selectedFeature.properties);
+            const map = new maplibregl.Map({
+                container: 'map',
+                preserveDrawingBuffer: true,
+                style: {
+                    version: 8,
+                    sources: { 
+                        'base-source': basemapSources['esri_sat']
+                    },
+                    layers: [{ id: 'base-layer', type: 'raster', source: 'base-source' }]
+                },
+                center: [105.2904, -5.3698], zoom: 17, pitch: 55, bearing: -15, antialias: true
             });
 
-            function calculateRTH(area, zone, props) {
-                const reqs = { 'Komersial': 20, 'Permukiman': 30, 'Industri': 15, 'Fasilitas Umum': 25 };
-                const minReq = reqs[zone] || 20;
+            const Draw = new MapboxDraw({ displayControlsDefault: false, controls: { polygon: true, line_string: true, trash: true } });
+            map.addControl(Draw);
 
-                let rthPercent = props.rth_percent !== undefined ? parseFloat(props.rth_percent) : 100;
-                let kdbPercent = (100 - rthPercent).toFixed(1);
-                let rthArea = ((area * rthPercent) / 100).toFixed(1);
+            function showAlert(msg, iconClass = 'fa-circle-info', iconColor = '#38bdf8') {
+                const modal = document.getElementById('custom-alert-modal');
+                const msgEl = document.getElementById('alert-modal-message');
+                const iconEl = document.getElementById('alert-modal-icon');
+                if (msgEl) msgEl.textContent = msg;
+                if (iconEl) {
+                    iconEl.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+                    iconEl.style.color = iconColor;
+                }
+                modal.classList.remove('hidden');
+            }
 
-                document.getElementById('calc-kdb-val').innerText = kdbPercent + "%";
-                document.getElementById('calc-rth-area').innerText = rthArea + " m²";
-                document.getElementById('calc-rth-percent').innerText = rthPercent + "%";
+            function showConfirm(msg, callback) {
+                const modal = document.getElementById('custom-confirm-modal');
+                const msgEl = document.getElementById('confirm-modal-message');
+                if (msgEl) msgEl.textContent = msg;
+                onConfirmCallback = callback;
+                modal.classList.remove('hidden');
+            }
 
-                const fillBar = document.getElementById('calc-rth-progress');
-                fillBar.style.width = Math.min(rthPercent, 100) + "%";
+            function setupCameraControls() {
+                document.getElementById('float-btn-2d').addEventListener('click', () => {
+                    map.easeTo({ pitch: 0, bearing: 0, duration: 1000 });
+                    document.getElementById('float-btn-2d').classList.add('btn-cam-active');
+                    document.getElementById('float-btn-3d').classList.remove('btn-cam-active');
+                });
 
-                const statusBox = document.getElementById('bidang-rth-status-box');
-                const title = document.getElementById('bidang-rth-status-title');
-                const desc = document.getElementById('bidang-rth-status-desc');
+                document.getElementById('float-btn-3d').addEventListener('click', () => {
+                    map.easeTo({ pitch: 60, bearing: -20, duration: 1000 });
+                    document.getElementById('float-btn-3d').classList.add('btn-cam-active');
+                    document.getElementById('float-btn-2d').classList.remove('btn-cam-active');
+                });
 
-                if (rthPercent >= minReq) {
-                    statusBox.className = "status-box-rth compliant";
-                    title.innerHTML = `<i class="fa-solid fa-circle-check"></i> PATUH ATURAN RTH`;
-                    desc.innerText = `RTH Realisasi (${rthPercent}%) memenuhi standar minimal Perda (${minReq}%).`;
-                    fillBar.style.background = "#10b981";
-                    props.is_violation = false;
-                } else {
-                    statusBox.className = "status-box-rth violation";
-                    title.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> PELANGGARAN RTH`;
-                    desc.innerText = `RTH Realisasi (${rthPercent}%) di bawah standar minimal Perda (${minReq}%).`;
-                    fillBar.style.background = "#f43f5e";
-                    props.is_violation = true;
+                document.getElementById('btn-rotate-ccw').addEventListener('click', () => {
+                    map.easeTo({ bearing: map.getBearing() - 45, duration: 500 });
+                });
+
+                document.getElementById('btn-rotate-cw').addEventListener('click', () => {
+                    map.easeTo({ bearing: map.getBearing() + 45, duration: 500 });
+                });
+
+                document.getElementById('btn-reset-north').addEventListener('click', () => {
+                    map.easeTo({ bearing: 0, pitch: 45, duration: 800 });
+                });
+
+                document.getElementById('btn-locate-me').addEventListener('click', () => {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                                map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 18, pitch: 60, duration: 1500 });
+                            },
+                            () => showAlert("Gagal mengambil lokasi GPS Anda.", 'fa-triangle-exclamation', '#f43f5e')
+                        );
+                    }
+                });
+            }
+
+            function setupAuth() {
+                const loginModal = document.getElementById('login-modal');
+                const authBtn = document.getElementById('auth-action-btn');
+                const closeBtn = document.getElementById('close-login-modal');
+                const loginForm = document.getElementById('login-form');
+                const errorMsg = document.getElementById('login-error-msg');
+
+                if (authBtn) {
+                    authBtn.addEventListener('click', () => {
+                        if (currentUser) {
+                            showConfirm("Apakah Anda yakin ingin keluar (logout)?", () => {
+                                if (window.firebaseApp && window.firebaseApp.signOut) {
+                                    window.firebaseApp.signOut(window.firebaseApp.auth);
+                                }
+                                setEditorMode(false);
+                            });
+                        } else {
+                            if (errorMsg) errorMsg.style.display = 'none';
+                            loginModal.classList.remove('hidden');
+                        }
+                    });
+                }
+
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        loginModal.classList.add('hidden');
+                    });
+                }
+
+                if (loginForm) {
+                    loginForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const email = document.getElementById('login-email').value;
+                        const password = document.getElementById('login-password').value;
+
+                        try {
+                            if (window.firebaseApp && window.firebaseApp.signInWithEmailAndPassword) {
+                                const cred = await window.firebaseApp.signInWithEmailAndPassword(window.firebaseApp.auth, email, password);
+                                currentUser = cred.user;
+                                setEditorMode(true);
+                                loginModal.classList.add('hidden');
+                                showAlert("Berhasil masuk sebagai Admin Editor!", 'fa-circle-check', '#10b981');
+                            } else {
+                                currentUser = { email: email };
+                                setEditorMode(true);
+                                loginModal.classList.add('hidden');
+                                showAlert("Mode Editor diaktifkan.", 'fa-circle-check', '#10b981');
+                            }
+                        } catch (err) {
+                            if (errorMsg) {
+                                errorMsg.textContent = "Gagal Login: " + (err.message || "Email / password salah");
+                                errorMsg.style.display = 'block';
+                            }
+                        }
+                    });
+                }
+
+                const modeBtnInfo = document.getElementById('mode-btn-info');
+                const modeBtnEditor = document.getElementById('mode-btn-editor');
+
+                modeBtnInfo.addEventListener('click', () => setEditorMode(false));
+                modeBtnEditor.addEventListener('click', () => {
+                    if (!currentUser) {
+                        loginModal.classList.remove('hidden');
+                    } else {
+                        setEditorMode(true);
+                    }
+                });
+
+                if (window.firebaseApp && window.firebaseApp.onAuthStateChanged) {
+                    window.firebaseApp.onAuthStateChanged(window.firebaseApp.auth, (user) => {
+                        if (user && !user.isAnonymous) {
+                            currentUser = user;
+                            setEditorMode(true);
+                        } else {
+                            currentUser = null;
+                            setEditorMode(false);
+                        }
+                    });
                 }
             }
 
-            // 2. OPEN BANGUNAN PANEL
-            function openBangunanPanel(f) {
-                const props = f.properties || {};
-                document.getElementById('bgn-id-tag').innerText = "ID: " + (props.id || '-');
-                document.getElementById('attr-bgn-nib').value = props.nib || props.NIB || '-';
-                
-                let areaBgn = 0;
-                try { areaBgn = turf.area(f).toFixed(2); } catch(err) { areaBgn = 0; }
-                document.getElementById('attr-bgn-luas-bgn').value = areaBgn;
-                document.getElementById('attr-bgn-luas-bdg').value = props.luas_bidang || (areaBgn * 1.5).toFixed(2);
+            function setEditorMode(enabled) {
+                const authBtn = document.getElementById('auth-action-btn');
+                const modeBtnInfo = document.getElementById('mode-btn-info');
+                const modeBtnEditor = document.getElementById('mode-btn-editor');
+                const badge = document.getElementById('current-mode-badge');
+                const digitizeContainer = document.getElementById('digitize-buttons-container');
 
-                document.getElementById('attr-bgn-tinggi').value = props.height || 12;
-                document.getElementById('attr-bgn-z').value = props.base_height || 3;
-                document.getElementById('attr-bgn-fungsi').value = props.fungsi || props.type || 'Rumah / Permukiman';
-                document.getElementById('attr-bgn-hak').value = props.hak || '';
-                document.getElementById('attr-bgn-status').value = props.status_tanah || '';
+                if (enabled) {
+                    authBtn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Logout';
+                    authBtn.className = 'btn btn-logout';
 
-                const panel = document.getElementById('panel-attr-bangunan');
-                const actions = document.getElementById('editor-actions-bangunan');
+                    // Sudah login & aktif di Mode Editor: sembunyikan Mode Info, tampilkan Editor aktif.
+                    modeBtnEditor.classList.remove('hidden', 'btn-disabled', 'btn-mode-inactive');
+                    modeBtnEditor.classList.add('btn-mode-active');
+                    modeBtnEditor.removeAttribute('title');
 
-                const isEditable = currentUser !== null;
-                document.getElementById('attr-bgn-nib').readOnly = !isEditable;
-                document.getElementById('attr-bgn-luas-bdg').readOnly = !isEditable;
-                document.getElementById('attr-bgn-tinggi').readOnly = !isEditable;
-                document.getElementById('attr-bgn-fungsi').disabled = !isEditable;
-                document.getElementById('attr-bgn-hak').disabled = !isEditable;
-                document.getElementById('attr-bgn-status').disabled = !isEditable;
+                    modeBtnInfo.classList.add('hidden');
 
-                if (isEditable) actions.classList.remove('hidden');
-                else actions.classList.add('hidden');
+                    badge.textContent = "Mode Editor (Admin)";
+                    badge.style.color = "#f59e0b";
+                    digitizeContainer.classList.remove('hidden');
 
-                panel.classList.remove('hidden');
+                    document.getElementById('editor-actions-bidang').classList.remove('hidden');
+                    document.getElementById('editor-actions-bangunan').classList.remove('hidden');
+                    document.getElementById('editor-actions-jalan').classList.remove('hidden');
+                } else {
+                    authBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Login';
+                    authBtn.className = 'btn btn-login';
+
+                    // Mode Info selalu tampil & aktif.
+                    modeBtnInfo.classList.remove('hidden');
+                    modeBtnInfo.classList.remove('btn-mode-inactive');
+                    modeBtnInfo.classList.add('btn-mode-active');
+
+                    // Tombol Editor hanya muncul jika sudah login; jika belum, sembunyikan total.
+                    if (currentUser) {
+                        modeBtnEditor.classList.remove('hidden', 'btn-disabled');
+                        modeBtnEditor.classList.remove('btn-mode-active');
+                        modeBtnEditor.classList.add('btn-mode-inactive');
+                        modeBtnEditor.removeAttribute('title');
+                    } else {
+                        modeBtnEditor.classList.add('hidden');
+                    }
+
+                    badge.textContent = "Mode Info (Publik)";
+                    badge.style.color = "#38bdf8";
+                    digitizeContainer.classList.add('hidden');
+
+                    document.getElementById('editor-actions-bidang').classList.add('hidden');
+                    document.getElementById('editor-actions-bangunan').classList.add('hidden');
+                    document.getElementById('editor-actions-jalan').classList.add('hidden');
+                }
             }
 
-            // 3. OPEN JALAN PANEL
-            function openJalanPanel(f) {
-                const props = f.properties || {};
-                document.getElementById('jalan-id-tag').innerText = "ID: " + (props.id || '-');
-                document.getElementById('attr-jalan-nama').value = props.nama || 'Jl. Utama';
-                document.getElementById('attr-jalan-fungsi').value = props.fungsi || 'Jalan Arteri / Utama';
-                document.getElementById('attr-jalan-lebar').value = props.lebar || 8;
-                document.getElementById('attr-jalan-perkerasan').value = props.perkerasan || 'Aspal Hotmix';
-
-                let lengthVal = 0;
-                try { lengthVal = (turf.length(f) * 1000).toFixed(1); } catch(err) { lengthVal = 0; }
-                document.getElementById('attr-jalan-panjang').value = lengthVal + " m";
-
-                const panel = document.getElementById('panel-attr-jalan');
-                const actions = document.getElementById('editor-actions-jalan');
-
-                const isEditable = currentUser !== null;
-                document.getElementById('attr-jalan-nama').readOnly = !isEditable;
-                document.getElementById('attr-jalan-lebar').readOnly = !isEditable;
-                document.getElementById('attr-jalan-fungsi').disabled = !isEditable;
-                document.getElementById('attr-jalan-perkerasan').disabled = !isEditable;
-
-                if (isEditable) actions.classList.remove('hidden');
-                else actions.classList.add('hidden');
-
-                panel.classList.remove('hidden');
+            function setupBasemap() {
+                const basemapSelect = document.getElementById('basemap-select');
+                if (basemapSelect) {
+                    basemapSelect.addEventListener('change', (e) => {
+                        const val = e.target.value;
+                        const src = basemapSources[val];
+                        if (src && map.getSource('base-source')) {
+                            map.getSource('base-source').tiles = src.tiles;
+                            map.style.sourceCaches['base-source'].clearTiles();
+                            map.style.sourceCaches['base-source'].update(map.transform);
+                            map.triggerRepaint();
+                        }
+                    });
+                }
             }
 
-            // SAVE & DELETE LISTENERS
-            // Save Bidang
-            document.getElementById('btn-save-bidang').addEventListener('click', async () => {
-                if (!selectedFeature || !currentUser) return;
-                const id = selectedFeature.properties.id;
-                selectedFeature.properties.nib = document.getElementById('attr-bidang-nib').value;
-                selectedFeature.properties.pemilik = document.getElementById('attr-bidang-pemilik').value;
-                selectedFeature.properties.zona = document.getElementById('attr-bidang-zona').value;
-                selectedFeature.properties.category = 'bidang';
+            function setupLayerToggles() {
+                document.getElementById('chk-layer-2d').addEventListener('change', (e) => {
+                    const vis = e.target.checked ? 'visible' : 'none';
+                    if (map.getLayer('cadastre-fill')) map.setLayoutProperty('cadastre-fill', 'visibility', vis);
+                    if (map.getLayer('cadastre-line')) map.setLayoutProperty('cadastre-line', 'visibility', vis);
+                    if (map.getLayer('cadastre-violation-marker')) map.setLayoutProperty('cadastre-violation-marker', 'visibility', vis);
+                });
 
-                await setDoc(doc(db, "parcels", id), selectedFeature);
-                refreshAllLayers();
-                alert("Atribut Bidang Tanah berhasil diperbarui!");
-            });
+                document.getElementById('chk-layer-3d').addEventListener('change', (e) => {
+                    const vis = e.target.checked ? 'visible' : 'none';
+                    if (map.getLayer('cadastre-3d-extrusion')) map.setLayoutProperty('cadastre-3d-extrusion', 'visibility', vis);
+                });
 
-            // Delete Bidang
-            document.getElementById('btn-delete-bidang').addEventListener('click', async () => {
-                if (!selectedFeature || !currentUser) return;
-                if (!confirm("Yakin menghapus bidang tanah ini?")) return;
-                const id = selectedFeature.properties.id;
-                await deleteDoc(doc(db, "parcels", id));
-                cadastreData.features = cadastreData.features.filter(x => x.properties.id !== id);
-                refreshAllLayers();
-                closeAllAttrPanels();
-                alert("Bidang berhasil dihapus!");
-            });
+                document.getElementById('chk-layer-road').addEventListener('change', (e) => {
+                    const vis = e.target.checked ? 'visible' : 'none';
+                    if (map.getLayer('cadastre-road-line')) map.setLayoutProperty('cadastre-road-line', 'visibility', vis);
+                });
 
-            // Save Bangunan
-            document.getElementById('btn-save-bgn').addEventListener('click', async () => {
-                if (!selectedFeature || !currentUser) return;
-                const id = selectedFeature.properties.id;
-                selectedFeature.properties.nib = document.getElementById('attr-bgn-nib').value;
-                selectedFeature.properties.luas_bidang = document.getElementById('attr-bgn-luas-bdg').value;
-                selectedFeature.properties.height = parseFloat(document.getElementById('attr-bgn-tinggi').value) || 12;
-                selectedFeature.properties.base_height = parseFloat(document.getElementById('attr-bgn-z').value) || 3;
-                selectedFeature.properties.fungsi = document.getElementById('attr-bgn-fungsi').value;
-                selectedFeature.properties.hak = document.getElementById('attr-bgn-hak').value;
-                selectedFeature.properties.status_tanah = document.getElementById('attr-bgn-status').value;
-                selectedFeature.properties.category = 'bangunan';
+                document.getElementById('chk-layer-aoi').addEventListener('change', (e) => {
+                    const vis = e.target.checked ? 'visible' : 'none';
+                    if (map.getLayer('cadastre-aoi-fill')) map.setLayoutProperty('cadastre-aoi-fill', 'visibility', vis);
+                    if (map.getLayer('cadastre-aoi-line')) map.setLayoutProperty('cadastre-aoi-line', 'visibility', vis);
+                });
+            }
 
-                await setDoc(doc(db, "parcels", id), selectedFeature);
-                refreshAllLayers();
-                alert("Atribut Bangunan 3D berhasil diperbarui!");
-            });
+            function updateStats() {
+                let bidangCount = 0;
+                let bgnCount = 0;
 
-            // Delete Bangunan
-            document.getElementById('btn-delete-bgn').addEventListener('click', async () => {
-                if (!selectedFeature || !currentUser) return;
-                if (!confirm("Yakin menghapus bangunan ini?")) return;
-                const id = selectedFeature.properties.id;
-                await deleteDoc(doc(db, "parcels", id));
-                cadastreData.features = cadastreData.features.filter(x => x.properties.id !== id);
-                refreshAllLayers();
-                closeAllAttrPanels();
-                alert("Bangunan 3D berhasil dihapus!");
-            });
+                cadastreData.features.forEach(f => {
+                    if (f.properties.category === 'bidang') bidangCount++;
+                    if (f.properties.category === 'bangunan') bgnCount++;
+                });
 
-            // Save Jalan
-            document.getElementById('btn-save-jalan').addEventListener('click', async () => {
-                if (!selectedFeature || !currentUser) return;
-                const id = selectedFeature.properties.id;
-                selectedFeature.properties.nama = document.getElementById('attr-jalan-nama').value;
-                selectedFeature.properties.fungsi = document.getElementById('attr-jalan-fungsi').value;
-                selectedFeature.properties.lebar = parseFloat(document.getElementById('attr-jalan-lebar').value) || 8;
-                selectedFeature.properties.perkerasan = document.getElementById('attr-jalan-perkerasan').value;
-                selectedFeature.properties.category = 'jalan';
+                const violationCount = getViolatingBidangIds().length;
 
-                await setDoc(doc(db, "parcels", id), selectedFeature);
-                refreshAllLayers();
-                alert("Atribut Jalan berhasil diperbarui!");
-            });
+                document.getElementById('stat-total-bidang').textContent = bidangCount;
+                document.getElementById('stat-total-bangunan').textContent = bgnCount;
+                document.getElementById('stat-violations').textContent = violationCount;
+            }
 
-            // Delete Jalan
-            document.getElementById('btn-delete-jalan').addEventListener('click', async () => {
-                if (!selectedFeature || !currentUser) return;
-                if (!confirm("Yakin menghapus segmen jalan ini?")) return;
-                const id = selectedFeature.properties.id;
-                await deleteDoc(doc(db, "parcels", id));
-                cadastreData.features = cadastreData.features.filter(x => x.properties.id !== id);
-                refreshAllLayers();
-                closeAllAttrPanels();
-                alert("Segmen jalan berhasil dihapus!");
-            });
-        }
+            function getViolatingBidangIds() {
+                const ids = [];
+                cadastreData.features.forEach(f => {
+                    if (f.properties.category !== 'bidang') return;
+                    try {
+                        if (getBidangViolationInfo(f).isViolating) ids.push(f.properties.id);
+                    } catch (err) {}
+                });
+                return ids;
+            }
 
-        function setupImportsAndDigitize() {
-            const handleUpload = async (file, categoryType, defaultZ = 0) => {
-                if (!file) return;
+            function isBuildingInParcel(bgn, bidang) {
                 try {
-                    const features = await processImportedFile(file);
-                    if (!features || features.length === 0) {
-                        alert("File tidak mengandung fitur geometri valid!");
+                    const c = turf.centroid(bgn);
+                    return turf.booleanPointInPolygon(c, bidang);
+                } catch (err) {
+                    return false;
+                }
+            }
+
+            function calcBidangCompliance(bidangFeature) {
+                const bidangArea = turf.area(bidangFeature);
+                const buildings = cadastreData.features.filter(f =>
+                    f.properties.category === 'bangunan' &&
+                    (f.properties.nib && bidangFeature.properties.nib && f.properties.nib === bidangFeature.properties.nib
+                        || isBuildingInParcel(f, bidangFeature))
+                );
+
+                let bgnArea = 0;
+                buildings.forEach(b => {
+                    try { bgnArea += turf.area(b); } catch (err) {}
+                });
+                bgnArea = Math.min(bgnArea, bidangArea);
+
+                const kdb = bidangArea > 0 ? (bgnArea / bidangArea) * 100 : 0;
+                const rthArea = Math.max(bidangArea - bgnArea, 0);
+                const rthPercent = bidangArea > 0 ? (rthArea / bidangArea) * 100 : 100;
+                const zona = bidangFeature.properties.zona || 'Permukiman';
+                const minRth = ZONA_MIN_RTH[zona] !== undefined ? ZONA_MIN_RTH[zona] : 20;
+                const compliant = rthPercent >= minRth;
+
+                return {
+                    bidangArea, bgnArea, bgnCount: buildings.length, buildings,
+                    kdb, rthArea, rthPercent, minRth, compliant, zona
+                };
+            }
+
+            function getBidangViolationInfo(bidangFeature) {
+                const calc = calcBidangCompliance(bidangFeature);
+                const details = [];
+                let denda = 0;
+
+                if (!calc.compliant) {
+                    const shortfallArea = Math.max((calc.minRth / 100 * calc.bidangArea) - calc.rthArea, 0);
+                    denda += shortfallArea * RATE_DENDA_RTH_PER_M2;
+                    details.push(`RTH realisasi hanya ${calc.rthPercent.toFixed(1)}%, di bawah syarat minimal ${calc.minRth}% untuk zona ${calc.zona} (kekurangan ± ${Math.round(shortfallArea)} m²).`);
+                }
+
+                const isEconomicZone = (calc.zona === 'Komersial' || calc.zona === 'Industri');
+                if (isEconomicZone && calc.rthPercent <= 0.5) {
+                    denda += RATE_DENDA_ZERO_RTH_EKONOMI;
+                    details.push(`Zona ${calc.zona} (sektor perekonomian) sama sekali tidak menyediakan Ruang Terbuka Hijau (RTH).`);
+                }
+
+                const allowedFungsi = ALLOWED_FUNGSI_BY_ZONA[calc.zona] || [];
+                const misused = calc.buildings.filter(b => allowedFungsi.length && !allowedFungsi.includes(b.properties.fungsi));
+                if (misused.length > 0) {
+                    denda += misused.length * RATE_DENDA_MISUSE;
+                    const fungsiList = [...new Set(misused.map(b => b.properties.fungsi))].join(', ');
+                    details.push(`Zona ${calc.zona} disalahgunakan untuk pembangunan yang tidak sesuai peruntukan (${fungsiList}) pada ${misused.length} bangunan.`);
+                }
+
+                return { isViolating: details.length > 0, details, denda, calc };
+            }
+
+            function renderBidangCompliance(bidangFeature, overrideZona) {
+                const calc = calcBidangCompliance(bidangFeature);
+                if (overrideZona && currentBidangCalcBase) {
+                    const minRth = ZONA_MIN_RTH[overrideZona] !== undefined ? ZONA_MIN_RTH[overrideZona] : 20;
+                    calc.zona = overrideZona;
+                    calc.minRth = minRth;
+                    calc.compliant = calc.rthPercent >= minRth;
+                }
+
+                currentBidangCalcBase = calc;
+
+                document.getElementById('calc-bgn-count').textContent = calc.bgnCount + ' Unit';
+                document.getElementById('calc-bgn-area').textContent = Math.round(calc.bgnArea) + ' m²';
+                document.getElementById('calc-kdb-val').textContent = calc.kdb.toFixed(1) + '%';
+                document.getElementById('calc-rth-area').textContent = Math.round(calc.rthArea) + ' m²';
+                document.getElementById('calc-rth-percent').textContent = calc.rthPercent.toFixed(1) + '%';
+
+                const progressEl = document.getElementById('calc-rth-progress');
+                progressEl.style.width = Math.min(calc.rthPercent, 100).toFixed(1) + '%';
+                progressEl.style.background = calc.compliant ? '#10b981' : '#f43f5e';
+
+                const statusBox = document.getElementById('bidang-rth-status-box');
+                const statusTitle = document.getElementById('bidang-rth-status-title');
+                const statusDesc = document.getElementById('bidang-rth-status-desc');
+                const detailBtn = document.getElementById('btn-view-violation-detail');
+
+                if (calc.compliant) {
+                    statusBox.classList.remove('violation');
+                    statusBox.classList.add('compliant');
+                    statusTitle.innerHTML = '<i class="fa-solid fa-circle-check"></i> PATUH ATURAN KDB & RTH';
+                    statusDesc.textContent = `RTH Realisasi ${calc.rthPercent.toFixed(1)}% memenuhi standar minimal Perda (${calc.minRth}%) untuk zona ${calc.zona}.`;
+                } else {
+                    statusBox.classList.remove('compliant');
+                    statusBox.classList.add('violation');
+                    statusTitle.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> MELANGGAR ATURAN KDB & RTH';
+                    statusDesc.textContent = `RTH Realisasi hanya ${calc.rthPercent.toFixed(1)}%, di bawah standar minimal Perda (${calc.minRth}%) untuk zona ${calc.zona}.`;
+                }
+
+                if (!overrideZona) {
+                    try {
+                        const fullInfo = getBidangViolationInfo(bidangFeature);
+                        if (fullInfo.isViolating) {
+                            detailBtn.classList.remove('hidden');
+                        } else {
+                            detailBtn.classList.add('hidden');
+                        }
+                    } catch (err) {
+                        detailBtn.classList.add('hidden');
+                    }
+                } else {
+                    detailBtn.classList.add('hidden');
+                }
+            }
+
+            function formatRupiah(num) {
+                return 'Rp ' + Math.round(num).toLocaleString('id-ID');
+            }
+
+            function createViolationIconData() {
+                const size = 48;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                ctx.beginPath();
+                ctx.arc(size / 2, size / 2, size / 2 - 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#f43f5e';
+                ctx.fill();
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 28px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('!', size / 2, size / 2 + 2);
+
+                return ctx.getImageData(0, 0, size, size);
+            }
+
+            function refreshViolationMarkers() {
+                if (!map.getLayer('cadastre-violation-marker')) return;
+                const ids = getViolatingBidangIds();
+                map.setFilter('cadastre-violation-marker', ['all', ['==', ['get', 'category'], 'bidang'], ['in', ['get', 'id'], ['literal', ids]]]);
+                updateStats();
+            }
+
+            function openViolationModal(bidangFeature) {
+                const info = getBidangViolationInfo(bidangFeature);
+                const listEl = document.getElementById('violation-modal-list');
+                const nibEl = document.getElementById('violation-modal-nib');
+                const dendaEl = document.getElementById('violation-modal-denda');
+
+                nibEl.textContent = `NIB: ${bidangFeature.properties.nib || '-'}  •  Pemilik: ${bidangFeature.properties.pemilik || '-'}  •  Zona: ${info.calc.zona}`;
+
+                if (info.details.length > 0) {
+                    listEl.innerHTML = info.details.map(d => `
+                        <div style="display:flex; gap:8px; align-items:flex-start; font-size:11px; background:#1e293b; border:1px solid #334155; padding:8px 10px; border-radius:6px; line-height:1.4;">
+                            <i class="fa-solid fa-circle-exclamation" style="color:#f43f5e; margin-top:2px; flex-shrink:0;"></i>
+                            <span>${d}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    listEl.innerHTML = `<div style="font-size:11px; color:#94a3b8;">Tidak ditemukan rincian pelanggaran spesifik.</div>`;
+                }
+
+                dendaEl.textContent = formatRupiah(info.denda);
+                violationModalTarget = bidangFeature;
+                document.getElementById('violation-modal').classList.remove('hidden');
+            }
+
+            function setupViolationUI() {
+                document.getElementById('close-violation-modal').addEventListener('click', () => {
+                    document.getElementById('violation-modal').classList.add('hidden');
+                });
+
+                document.getElementById('violation-modal-detail-btn').addEventListener('click', () => {
+                    document.getElementById('violation-modal').classList.add('hidden');
+                    if (violationModalTarget) {
+                        const f = findFeatureById(violationModalTarget.properties.id) || violationModalTarget;
+                        openAttrPanelForFeature(f);
+                    }
+                });
+
+                document.getElementById('btn-view-violation-detail').addEventListener('click', () => {
+                    if (selectedFeature && selectedFeature.properties.category === 'bidang') {
+                        const f = findFeatureById(selectedFeature.properties.id) || selectedFeature;
+                        openViolationModal(f);
+                    }
+                });
+            }
+
+            function calcBangunanNJOP() {
+                const luas = parseFloat(document.getElementById('attr-bgn-luas-bgn').value) || 0;
+                const lantai = parseInt(document.getElementById('attr-bgn-lantai').value) || 1;
+                const fungsi = document.getElementById('attr-bgn-fungsi').value;
+                const totalFloorArea = luas * lantai;
+                const rate = NJOP_RATE_PER_M2[fungsi] || 3000000;
+                const estimatedVal = totalFloorArea * rate;
+
+                document.getElementById('zon-total-floor-area').textContent = Math.round(totalFloorArea) + ' m²';
+                document.getElementById('zon-estimated-val').textContent = formatRupiah(estimatedVal);
+                document.getElementById('attr-bgn-tinggi').value = lantai * 3;
+            }
+
+            function countVertices(geometry) {
+                if (!geometry) return 0;
+                if (geometry.type === 'LineString') return geometry.coordinates.length;
+                if (geometry.type === 'MultiLineString') return geometry.coordinates.reduce((sum, line) => sum + line.length, 0);
+                return 0;
+            }
+
+            function renderJalanInfo(feature, lengthMeters) {
+                const geomType = feature.geometry ? feature.geometry.type : 'LineString';
+                const lebar = parseFloat(document.getElementById('attr-jalan-lebar').value) || 8;
+                const luasPerkerasan = lengthMeters * lebar;
+
+                document.getElementById('jalan-vertex-count').textContent = countVertices(feature.geometry);
+                document.getElementById('jalan-luas-perkerasan').textContent = Math.round(luasPerkerasan).toLocaleString('id-ID') + ' m²';
+                document.getElementById('jalan-geom-type').textContent = geomType + ' (2D)';
+
+                const sumberMap = { 'import': 'Import File (SHP/GeoJSON)', 'digitasi': 'Digitasi Manual', 'preset': 'Data Preset/Existing' };
+                document.getElementById('jalan-sumber-data').textContent = sumberMap[feature.properties.sumber] || 'Data Preset/Existing';
+            }
+
+            /* ===================== TABEL ATRIBUT DATA ASAL (IMPORT) ===================== */
+            // Label ramah-pengguna untuk nama field teknis yang umum dijumpai pada data
+            // ArcGIS/OSM/SHP hasil import, supaya lebih mudah dibaca di tabel atribut.
+            const EXTRA_ATTR_LABELS = {
+                'id': 'ID Asal Data', '@id': 'ID Asal Data (OSM)', 'nib': 'NIB (Asal Data)',
+                'status': 'Status (Asal Data)', 'tipe_hak': 'Tipe Hak (Asal Data)',
+                'building': 'Tag Building (OSM)', 'highway': 'Tag Highway (OSM)',
+                'height_m': 'Tinggi Bangunan Asal (m)', 'luas_bangunan': 'Luas Bangunan (Asal Data, m²)',
+                'luas_bidang': 'Luas Bidang (Asal Data, m²)', 'fungsi': 'Fungsi (Asal Data)',
+                'name': 'Nama (OSM)', 'alt_name': 'Nama Alternatif (OSM)', 'ref': 'Kode/Referensi Ruas',
+                'surface': 'Permukaan (OSM)', 'lanes': 'Jumlah Lajur (OSM)', 'oneway': 'Satu Arah (OSM)',
+                'access': 'Akses (OSM)', 'source': 'Sumber Data (OSM)', 'layer': 'Layer (OSM)',
+                'bridge': 'Jembatan (OSM)', 'maxspeed': 'Batas Kecepatan (OSM)', 'smoothness': 'Kehalusan Jalan (OSM)',
+                'motor_vehicle': 'Akses Kendaraan Bermotor', 'motorcar': 'Akses Mobil', 'motorcycle': 'Akses Motor',
+                'footway': 'Tipe Pedestrian (OSM)', 'service': 'Tipe Layanan Jalan (OSM)',
+                'addr:city': 'Kota (Alamat)', 'addr:street': 'Jalan (Alamat)', 'addr:postcode': 'Kode Pos (Alamat)',
+                'addr:neighbourhood': 'Kelurahan/Lingkungan (Alamat)', 'shop': 'Jenis Toko (OSM)', 'import': 'Tag Import (OSM)'
+            };
+            function prettifyAttrKey(key) {
+                const lower = String(key).toLowerCase();
+                if (EXTRA_ATTR_LABELS[lower]) return EXTRA_ATTR_LABELS[lower];
+                return String(key)
+                    .replace(/^@/, '')
+                    .replace(/[_:\-]+/g, ' ')
+                    .trim()
+                    .split(' ')
+                    .filter(Boolean)
+                    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(' ');
+            }
+            function formatAttrValue(val) {
+                if (val === null || val === undefined) return '-';
+                if (typeof val === 'number') return val.toLocaleString('id-ID');
+                const s = String(val).trim();
+                return s === '' ? '-' : s;
+            }
+            // Field yang sudah punya kolom sendiri di formulir (tidak perlu diulang di tabel atribut asal).
+            const CORE_KEYS_BY_CATEGORY = {
+                bidang: ['category', 'sumber', 'id', 'nib', 'pemilik', 'zona'],
+                bangunan: ['category', 'sumber', 'id', 'nib', 'jumlah_lantai', 'height', 'base_height', 'fungsi', 'hak', 'status'],
+                jalan: ['category', 'sumber', 'id', 'nama', 'fungsi', 'lebar', 'perkerasan']
+            };
+            function normKeyForCompare(k) {
+                return String(k).toLowerCase().replace(/[\s_\-:@]/g, '');
+            }
+            // Mengisi tabel "Atribut Data Asal (Import)" pada panel detail fitur dengan seluruh
+            // properti GeoJSON yang belum tercakup pada formulir baku, agar semua atribut yang
+            // memang ada di data sumber tetap terlihat oleh pengguna.
+            function renderExtraAttributesTable(prefix, feature) {
+                const wrap = document.getElementById(prefix + '-extra-attrs-wrap');
+                const tbody = document.getElementById(prefix + '-extra-attrs-table');
+                const countEl = document.getElementById(prefix + '-extra-attrs-count');
+                if (!wrap || !tbody) return;
+
+                const props = feature.properties || {};
+                const category = props.category;
+                const coreKeys = (CORE_KEYS_BY_CATEGORY[category] || []).map(normKeyForCompare);
+                const rows = Object.keys(props)
+                    .filter(k => !coreKeys.includes(normKeyForCompare(k)))
+                    .filter(k => {
+                        const v = props[k];
+                        return v !== null && v !== undefined && String(v).trim() !== '';
+                    })
+                    .map(k => ({ key: k, label: prettifyAttrKey(k), value: formatAttrValue(props[k]) }))
+                    .sort((a, b) => a.label.localeCompare(b.label));
+
+                if (!rows.length) {
+                    wrap.classList.add('hidden');
+                    tbody.innerHTML = '';
+                    return;
+                }
+
+                tbody.innerHTML = rows.map(r => `<tr><td class="key">${r.label}</td><td class="val">${r.value}</td></tr>`).join('');
+                if (countEl) countEl.textContent = String(rows.length);
+                wrap.classList.remove('hidden');
+            }
+            function setupExtraAttributeToggles() {
+                ['bidang', 'bgn', 'jalan'].forEach(prefix => {
+                    const toggle = document.getElementById(prefix + '-extra-attrs-toggle');
+                    const body = document.getElementById(prefix + '-extra-attrs-body');
+                    const chev = document.getElementById(prefix + '-extra-attrs-chev');
+                    if (!toggle || !body) return;
+                    toggle.addEventListener('click', () => {
+                        body.classList.toggle('hidden');
+                        if (chev) chev.style.transform = body.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+                    });
+                });
+            }
+
+            function openAttrPanelForFeature(feature) {
+                selectedFeature = feature;
+                const props = feature.properties;
+
+                window.closeAllAttrPanels();
+
+                if (props.category === 'bidang') {
+                    document.getElementById('attr-bidang-nib').value = props.nib || '';
+                    document.getElementById('attr-bidang-pemilik').value = props.pemilik || '';
+                    document.getElementById('attr-bidang-zona').value = props.zona || 'Permukiman';
+
+                    let area = 0;
+                    try { area = Math.round(turf.area(feature)); } catch (err) {}
+                    document.getElementById('attr-bidang-luas').value = area + ' m²';
+
+                    renderBidangCompliance(feature);
+                    renderExtraAttributesTable('bidang', feature);
+                    document.getElementById('panel-attr-bidang').classList.remove('hidden');
+                } else if (props.category === 'bangunan') {
+                    document.getElementById('bgn-id-tag').textContent = 'ID: ' + (props.id || '-');
+                    document.getElementById('attr-bgn-nib').value = props.nib || '';
+                    document.getElementById('attr-bgn-lantai').value = props.jumlah_lantai || 1;
+                    document.getElementById('attr-bgn-tinggi').value = props.height || 3;
+                    document.getElementById('attr-bgn-fungsi').value = props.fungsi || 'Rumah / Permukiman';
+                    document.getElementById('attr-bgn-hak').value = props.hak || '';
+                    document.getElementById('attr-bgn-status').value = props.status || '';
+
+                    let area = 0;
+                    try { area = Math.round(turf.area(feature)); } catch (err) {}
+                    if (!area && props.luas_bangunan_import) area = Math.round(props.luas_bangunan_import);
+                    document.getElementById('attr-bgn-luas-bgn').value = area;
+
+                    let bidangArea = '-';
+                    if (props.nib) {
+                        const bidang = cadastreData.features.find(f => f.properties.category === 'bidang' && f.properties.nib === props.nib);
+                        if (bidang) {
+                            try { bidangArea = Math.round(turf.area(bidang)); } catch (err) {}
+                        }
+                    }
+                    if (bidangArea === '-' && props.luas_bidang_import) bidangArea = Math.round(props.luas_bidang_import);
+                    document.getElementById('attr-bgn-luas-bdg').value = bidangArea;
+
+                    calcBangunanNJOP();
+                    renderExtraAttributesTable('bgn', feature);
+                    document.getElementById('panel-attr-bangunan').classList.remove('hidden');
+                } else if (props.category === 'jalan') {
+                    document.getElementById('jalan-id-tag').textContent = 'ID: ' + (props.id || '-');
+                    document.getElementById('attr-jalan-nama').value = props.nama || '';
+                    document.getElementById('attr-jalan-fungsi').value = props.fungsi || 'Jalan Arteri / Utama';
+                    document.getElementById('attr-jalan-lebar').value = props.lebar || 8;
+                    document.getElementById('attr-jalan-perkerasan').value = props.perkerasan || 'Aspal Hotmix';
+
+                    let len = 0;
+                    try { len = Math.round(turf.length(feature, { units: 'meters' })); } catch (err) {}
+                    document.getElementById('attr-jalan-panjang').value = len + ' m';
+
+                    renderJalanInfo(feature, len);
+                    renderExtraAttributesTable('jalan', feature);
+                    document.getElementById('panel-attr-jalan').classList.remove('hidden');
+                }
+            }
+
+            async function persistFeature(feature) {
+                try {
+                    if (window.firebaseApp && window.firebaseApp.db && currentUser) {
+                        const { db, appId, doc, setDoc } = window.firebaseApp;
+                        const ref = doc(db, `artifacts/${appId}/public/data/cadastre_features`, feature.properties.id);
+                        await setDoc(ref, feature, { merge: true });
+                    }
+                } catch (err) {
+                    console.warn('Gagal sinkronisasi ke Firestore:', err);
+                }
+            }
+
+            async function removeFeatureRemote(id) {
+                try {
+                    if (window.firebaseApp && window.firebaseApp.db && currentUser) {
+                        const { db, appId, doc, deleteDoc } = window.firebaseApp;
+                        const ref = doc(db, `artifacts/${appId}/public/data/cadastre_features`, id);
+                        await deleteDoc(ref);
+                    }
+                } catch (err) {
+                    console.warn('Gagal hapus data di Firestore:', err);
+                }
+            }
+
+            function refreshCadastreSource() {
+                if (map.getSource('cadastre-source')) {
+                    map.getSource('cadastre-source').setData(cadastreData);
+                }
+                refreshViolationMarkers();
+                updateStats();
+            }
+
+            function initMapLayers() {
+                map.addSource('cadastre-source', { type: 'geojson', data: cadastreData });
+
+                map.addLayer({
+                    id: 'cadastre-aoi-fill',
+                    type: 'fill',
+                    source: 'cadastre-source',
+                    filter: ['==', ['get', 'category'], 'aoi'],
+                    paint: { 'fill-color': '#f59e0b', 'fill-opacity': 0.08 }
+                });
+
+                map.addLayer({
+                    id: 'cadastre-aoi-line',
+                    type: 'line',
+                    source: 'cadastre-source',
+                    filter: ['==', ['get', 'category'], 'aoi'],
+                    paint: { 'line-color': '#f59e0b', 'line-width': 2, 'line-dasharray': [2, 2] }
+                });
+
+                map.addLayer({
+                    id: 'cadastre-fill',
+                    type: 'fill',
+                    source: 'cadastre-source',
+                    filter: ['==', ['get', 'category'], 'bidang'],
+                    paint: {
+                        'fill-color': [
+                            'match', ['get', 'zona'],
+                            'Komersial', '#f59e0b',
+                            'Permukiman', '#0284c7',
+                            'Industri', '#a855f7',
+                            'Fasilitas Umum', '#10b981',
+                            '#0284c7'
+                        ],
+                        'fill-opacity': 0.4
+                    }
+                });
+
+                map.addLayer({
+                    id: 'cadastre-line',
+                    type: 'line',
+                    source: 'cadastre-source',
+                    filter: ['==', ['get', 'category'], 'bidang'],
+                    paint: { 'line-color': '#38bdf8', 'line-width': 1.5 }
+                });
+
+                map.addLayer({
+                    id: 'cadastre-road-line',
+                    type: 'line',
+                    source: 'cadastre-source',
+                    filter: ['==', ['get', 'category'], 'jalan'],
+                    paint: { 'line-color': '#a7f3d0', 'line-width': ['coalesce', ['get', 'lebar'], 6] }
+                });
+
+                map.addLayer({
+                    id: 'cadastre-3d-extrusion',
+                    type: 'fill-extrusion',
+                    source: 'cadastre-source',
+                    filter: ['==', ['get', 'category'], 'bangunan'],
+                    paint: {
+                        'fill-extrusion-color': [
+                            'match', ['get', 'fungsi'],
+                            'Rumah / Permukiman', '#38bdf8',
+                            'Komersial / Usaha', '#f59e0b',
+                            'Industri / Pabrik', '#a855f7',
+                            'Fasilitas Umum', '#10b981',
+                            '#38bdf8'
+                        ],
+                        'fill-extrusion-height': ['coalesce', ['get', 'height'], 6],
+                        'fill-extrusion-base': ['coalesce', ['get', 'base_height'], 0],
+                        'fill-extrusion-opacity': 0.85
+                    }
+                });
+
+                if (!map.hasImage('violation-icon')) {
+                    map.addImage('violation-icon', createViolationIconData());
+                }
+
+                map.addLayer({
+                    id: 'cadastre-violation-marker',
+                    type: 'symbol',
+                    source: 'cadastre-source',
+                    filter: ['all', ['==', ['get', 'category'], 'bidang'], ['in', ['get', 'id'], ['literal', []]]],
+                    layout: {
+                        'icon-image': 'violation-icon',
+                        'icon-size': 0.5,
+                        'icon-allow-overlap': true,
+                        'icon-ignore-placement': true
+                    }
+                });
+
+                refreshViolationMarkers();
+                updateStats();
+            }
+
+            function setupInteractions() {
+                map.on('click', (e) => {
+                    if (isMeasurementMode || (activeDrawType && activeDrawType !== null)) return;
+
+                    const violFeatures = map.queryRenderedFeatures(e.point, { layers: ['cadastre-violation-marker'] });
+                    if (violFeatures.length) {
+                        const bidang = findFeatureById(violFeatures[0].properties.id);
+                        if (bidang) openViolationModal(bidang);
                         return;
                     }
 
-                    for (let f of features) {
-                        if (!f.properties) f.properties = {};
-                        if (!f.properties.id) f.properties.id = 'obj-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+                    const features = map.queryRenderedFeatures(e.point, {
+                        layers: ['cadastre-fill', 'cadastre-3d-extrusion', 'cadastre-road-line']
+                    });
 
-                        f.properties.category = categoryType;
+                    if (!features.length) return;
 
-                        if (categoryType === 'bangunan' || categoryType === '3d') {
-                            f.properties.height = f.properties.height || 12;
-                            f.properties.base_height = defaultZ;
-                            if (f.geometry && f.geometry.coordinates) {
-                                f.geometry.coordinates = injectZCoordinate(f.geometry.coordinates, defaultZ);
-                            }
+                    openAttrPanelForFeature(features[0]);
+                });
+
+                // Set Up Closing Panels
+                document.getElementById('btn-close-attr-bidang').addEventListener('click', window.closeAllAttrPanels);
+                document.getElementById('btn-close-attr-bangunan').addEventListener('click', window.closeAllAttrPanels);
+                document.getElementById('btn-close-attr-jalan').addEventListener('click', window.closeAllAttrPanels);
+
+                // Upload Trigger Bindings
+                document.getElementById('btn-upload-2d').addEventListener('click', () => document.getElementById('input-import-2d').click());
+                document.getElementById('btn-upload-road').addEventListener('click', () => document.getElementById('input-import-jalan').click());
+                document.getElementById('btn-upload-3d').addEventListener('click', () => document.getElementById('input-import-3d').click());
+                document.getElementById('btn-upload-aoi').addEventListener('click', () => document.getElementById('input-import-aoi').click());
+
+                // Modal Close Alert / Confirm
+                document.getElementById('alert-modal-close-btn').addEventListener('click', () => {
+                    document.getElementById('custom-alert-modal').classList.add('hidden');
+                });
+                document.getElementById('confirm-modal-cancel-btn').addEventListener('click', () => {
+                    document.getElementById('custom-confirm-modal').classList.add('hidden');
+                });
+                document.getElementById('confirm-modal-ok-btn').addEventListener('click', () => {
+                    document.getElementById('custom-confirm-modal').classList.add('hidden');
+                    if (onConfirmCallback) onConfirmCallback();
+                });
+            }
+
+            function setupSearchAndFilters() {
+                const searchInput = document.getElementById('search-input');
+                const searchResults = document.getElementById('search-results');
+                const filterZonaSelect = document.getElementById('filter-zona-select');
+                const btnResetFilter = document.getElementById('btn-reset-filter');
+
+                searchInput.addEventListener('input', (e) => {
+                    const q = e.target.value.toLowerCase().trim();
+                    if (!q) {
+                        searchResults.classList.add('hidden');
+                        searchResults.innerHTML = '';
+                        return;
+                    }
+
+                    const matches = cadastreData.features.filter(f => {
+                        const p = f.properties;
+                        return (p.nib && p.nib.toLowerCase().includes(q)) ||
+                               (p.pemilik && p.pemilik.toLowerCase().includes(q)) ||
+                               (p.nama && p.nama.toLowerCase().includes(q));
+                    });
+
+                    if (matches.length > 0) {
+                        searchResults.innerHTML = matches.map(m => `
+                            <div class="search-result-item" data-id="${m.properties.id || ''}">
+                                <strong>${m.properties.nib || m.properties.nama || 'Fitur'}</strong> 
+                                <span style="color:#94a3b8;">(${m.properties.pemilik || m.properties.category || ''})</span>
+                            </div>
+                        `).join('');
+                        searchResults.classList.remove('hidden');
+
+                        searchResults.querySelectorAll('.search-result-item').forEach(el => {
+                            el.addEventListener('click', () => {
+                                const id = el.getAttribute('data-id');
+                                const target = cadastreData.features.find(f => f.properties.id === id);
+                                if (target) {
+                                    const center = turf.center(target);
+                                    map.flyTo({ center: center.geometry.coordinates, zoom: 18 });
+                                }
+                                searchResults.classList.add('hidden');
+                            });
+                        });
+                    } else {
+                        searchResults.innerHTML = '<div class="search-result-item" style="color:#94a3b8;">Data tidak ditemukan.</div>';
+                        searchResults.classList.remove('hidden');
+                    }
+                });
+
+                filterZonaSelect.addEventListener('change', (e) => {
+                    const val = e.target.value;
+                    if (val === 'ALL') {
+                        map.setFilter('cadastre-fill', ['==', ['get', 'category'], 'bidang']);
+                    } else {
+                        map.setFilter('cadastre-fill', ['all', ['==', ['get', 'category'], 'bidang'], ['==', ['get', 'zona'], val]]);
+                    }
+                });
+
+                btnResetFilter.addEventListener('click', () => {
+                    searchInput.value = '';
+                    filterZonaSelect.value = 'ALL';
+                    map.setFilter('cadastre-fill', ['==', ['get', 'category'], 'bidang']);
+                    searchResults.classList.add('hidden');
+
+                    violationsFilterActive = false;
+                    const btnViolations = document.getElementById('btn-filter-violations');
+                    btnViolations.classList.remove('btn-mode-active');
+                    btnViolations.classList.add('btn-mode-inactive');
+                });
+
+                document.getElementById('btn-filter-violations').addEventListener('click', (e) => {
+                    const btn = e.currentTarget;
+                    violationsFilterActive = !violationsFilterActive;
+
+                    if (violationsFilterActive) {
+                        const violatingIds = getViolatingBidangIds();
+                        if (violatingIds.length === 0) {
+                            showAlert('Tidak ditemukan pelanggaran KDB/RTH pada data saat ini.', 'fa-circle-check', '#10b981');
+                            violationsFilterActive = false;
+                            return;
+                        }
+                        map.setFilter('cadastre-fill', ['all', ['==', ['get', 'category'], 'bidang'], ['in', ['get', 'id'], ['literal', violatingIds]]]);
+                        btn.classList.remove('btn-mode-inactive');
+                        btn.classList.add('btn-mode-active');
+                    } else {
+                        map.setFilter('cadastre-fill', ['==', ['get', 'category'], 'bidang']);
+                        btn.classList.remove('btn-mode-active');
+                        btn.classList.add('btn-mode-inactive');
+                    }
+                });
+            }
+
+            /* ===================== DIGITASI / DRAWING TOOLS ===================== */
+
+            function buildDefaultProps(type, id) {
+                if (type === 'bidang') {
+                    return { id, category: 'bidang', nib: '', pemilik: '', zona: 'Permukiman' };
+                }
+                if (type === 'bangunan') {
+                    return { id, category: 'bangunan', nib: '', fungsi: 'Rumah / Permukiman', jumlah_lantai: 1, height: 3, base_height: 0 };
+                }
+                if (type === 'jalan') {
+                    return { id, category: 'jalan', nama: '', fungsi: 'Jalan Arteri / Utama', lebar: 8, perkerasan: 'Aspal Hotmix' };
+                }
+                return { id, category: type };
+            }
+
+            function isFeatureIntersectingArea(feature, area) {
+                try {
+                    return turf.booleanIntersects(feature, area);
+                } catch (err) {
+                    return false;
+                }
+            }
+
+            function performBulkDelete(drawnArea) {
+                const targets = cadastreData.features.filter(f =>
+                    f.properties.category !== 'aoi' && isFeatureIntersectingArea(f, drawnArea)
+                );
+
+                if (targets.length === 0) {
+                    showAlert('Tidak ada fitur yang berada di dalam area yang dipilih.', 'fa-circle-info', '#38bdf8');
+                    return;
+                }
+
+                showConfirm(`Anda yakin ingin menghapus ${targets.length} fitur pada area terpilih ini secara massal?`, () => {
+                    const idsToDelete = new Set(targets.map(t => t.properties.id));
+                    cadastreData.features = cadastreData.features.filter(f => !idsToDelete.has(f.properties.id));
+                    targets.forEach(t => removeFeatureRemote(t.properties.id));
+                    refreshCadastreSource();
+                    window.closeAllAttrPanels();
+                    showAlert(`${targets.length} fitur berhasil dihapus secara massal.`, 'fa-circle-check', '#10b981');
+                });
+            }
+
+            function handleMeasurementCreate(drawn) {
+                const resultEl = document.getElementById('measure-result');
+                if (isMeasurementMode === 'distance') {
+                    try {
+                        const km = turf.length(drawn, { units: 'kilometers' });
+                        const m = km * 1000;
+                        resultEl.textContent = 'Jarak: ' + (m < 1000 ? m.toFixed(1) + ' m' : km.toFixed(2) + ' km');
+                    } catch (err) {}
+                } else if (isMeasurementMode === 'area') {
+                    try {
+                        const area = turf.area(drawn);
+                        resultEl.textContent = 'Luas: ' + (area < 10000 ? Math.round(area) + ' m²' : (area / 10000).toFixed(2) + ' ha');
+                    } catch (err) {}
+                }
+            }
+
+            function resetActiveTools() {
+                activeDrawType = null;
+                isMeasurementMode = null;
+                try { Draw.deleteAll(); } catch (err) {}
+                try { Draw.changeMode('simple_select'); } catch (err) {}
+
+                ['btn-measure-distance', 'btn-measure-area'].forEach(id => {
+                    const el = document.getElementById(id);
+                    el.classList.remove('btn-mode-active');
+                    el.classList.add('btn-mode-inactive');
+                });
+            }
+
+            function setupDigitizing() {
+                map.on('draw.create', (e) => {
+                    const drawn = e.features[0];
+
+                    if (isMeasurementMode) {
+                        handleMeasurementCreate(drawn);
+                        Draw.delete(drawn.id);
+                        return;
+                    }
+
+                    if (activeDrawType === 'bulk-delete') {
+                        performBulkDelete(drawn);
+                        Draw.delete(drawn.id);
+                        activeDrawType = null;
+                        return;
+                    }
+
+                    if (activeDrawType) {
+                        const id = activeDrawType + '-' + Date.now();
+                        const props = buildDefaultProps(activeDrawType, id);
+                        props.sumber = 'digitasi';
+                        const newFeature = { type: 'Feature', properties: props, geometry: drawn.geometry };
+                        cadastreData.features.push(newFeature);
+                        Draw.delete(drawn.id);
+                        refreshCadastreSource();
+                        openAttrPanelForFeature(newFeature);
+                        showAlert('Fitur baru berhasil digambar. Silakan lengkapi atribut lalu klik Simpan.', 'fa-circle-info', '#38bdf8');
+                        activeDrawType = null;
+                        return;
+                    }
+
+                    Draw.delete(drawn.id);
+                });
+
+                document.getElementById('btn-draw-parcel').addEventListener('click', () => {
+                    resetActiveTools();
+                    activeDrawType = 'bidang';
+                    Draw.changeMode('draw_polygon');
+                });
+
+                document.getElementById('btn-draw-road').addEventListener('click', () => {
+                    resetActiveTools();
+                    activeDrawType = 'jalan';
+                    Draw.changeMode('draw_line_string');
+                });
+
+                document.getElementById('btn-draw-3d').addEventListener('click', () => {
+                    resetActiveTools();
+                    activeDrawType = 'bangunan';
+                    Draw.changeMode('draw_polygon');
+                });
+
+                document.getElementById('btn-select-bulk-delete').addEventListener('click', () => {
+                    resetActiveTools();
+                    activeDrawType = 'bulk-delete';
+                    Draw.changeMode('draw_polygon');
+                    showAlert('Gambar sebuah area poligon untuk memilih & menghapus semua fitur di dalamnya.', 'fa-triangle-exclamation', '#f59e0b');
+                });
+            }
+
+            /* ===================== PENGUKURAN SPASIAL ===================== */
+
+            function setupMeasurement() {
+                const btnDistance = document.getElementById('btn-measure-distance');
+                const btnArea = document.getElementById('btn-measure-area');
+
+                btnDistance.addEventListener('click', () => {
+                    if (isMeasurementMode === 'distance') {
+                        resetActiveTools();
+                        document.getElementById('measure-result').textContent = '';
+                        return;
+                    }
+                    resetActiveTools();
+                    isMeasurementMode = 'distance';
+                    document.getElementById('measure-result').textContent = 'Klik di peta untuk membuat garis ukur...';
+                    Draw.changeMode('draw_line_string');
+                    btnDistance.classList.remove('btn-mode-inactive');
+                    btnDistance.classList.add('btn-mode-active');
+                });
+
+                btnArea.addEventListener('click', () => {
+                    if (isMeasurementMode === 'area') {
+                        resetActiveTools();
+                        document.getElementById('measure-result').textContent = '';
+                        return;
+                    }
+                    resetActiveTools();
+                    isMeasurementMode = 'area';
+                    document.getElementById('measure-result').textContent = 'Klik di peta untuk membuat poligon ukur...';
+                    Draw.changeMode('draw_polygon');
+                    btnArea.classList.remove('btn-mode-inactive');
+                    btnArea.classList.add('btn-mode-active');
+                });
+            }
+
+            /* ===================== FORM ATRIBUT: SIMPAN / HAPUS ===================== */
+
+            function findFeatureById(id) {
+                return cadastreData.features.find(f => f.properties.id === id);
+            }
+
+            function setupAttributeForms() {
+                document.getElementById('attr-bidang-zona').addEventListener('change', (e) => {
+                    if (currentBidangCalcBase && selectedFeature && selectedFeature.properties.category === 'bidang') {
+                        renderBidangCompliance(selectedFeature, e.target.value);
+                    }
+                });
+
+                document.getElementById('btn-save-bidang').addEventListener('click', () => {
+                    if (!selectedFeature) return;
+                    const f = findFeatureById(selectedFeature.properties.id);
+                    if (!f) return;
+
+                    f.properties.nib = document.getElementById('attr-bidang-nib').value;
+                    f.properties.pemilik = document.getElementById('attr-bidang-pemilik').value;
+                    f.properties.zona = document.getElementById('attr-bidang-zona').value;
+
+                    selectedFeature = f;
+                    refreshCadastreSource();
+                    renderBidangCompliance(f);
+                    persistFeature(f);
+                    showAlert('Data bidang tanah berhasil disimpan.', 'fa-circle-check', '#10b981');
+                });
+
+                document.getElementById('btn-delete-bidang').addEventListener('click', () => {
+                    if (!selectedFeature) return;
+                    const id = selectedFeature.properties.id;
+                    showConfirm('Apakah Anda yakin ingin menghapus bidang tanah ini beserta atributnya?', () => {
+                        cadastreData.features = cadastreData.features.filter(f => f.properties.id !== id);
+                        removeFeatureRemote(id);
+                        refreshCadastreSource();
+                        window.closeAllAttrPanels();
+                        selectedFeature = null;
+                        showAlert('Bidang tanah berhasil dihapus.', 'fa-circle-check', '#10b981');
+                    });
+                });
+
+                document.getElementById('attr-bgn-lantai').addEventListener('input', calcBangunanNJOP);
+                document.getElementById('attr-bgn-fungsi').addEventListener('change', calcBangunanNJOP);
+
+                document.getElementById('btn-save-bgn').addEventListener('click', () => {
+                    if (!selectedFeature) return;
+                    const f = findFeatureById(selectedFeature.properties.id);
+                    if (!f) return;
+
+                    const lantai = parseInt(document.getElementById('attr-bgn-lantai').value) || 1;
+                    f.properties.nib = document.getElementById('attr-bgn-nib').value;
+                    f.properties.jumlah_lantai = lantai;
+                    f.properties.height = lantai * 3;
+                    f.properties.fungsi = document.getElementById('attr-bgn-fungsi').value;
+                    f.properties.hak = document.getElementById('attr-bgn-hak').value;
+                    f.properties.status = document.getElementById('attr-bgn-status').value;
+
+                    selectedFeature = f;
+                    refreshCadastreSource();
+                    persistFeature(f);
+                    showAlert('Data bangunan berhasil disimpan.', 'fa-circle-check', '#10b981');
+                });
+
+                document.getElementById('btn-delete-bgn').addEventListener('click', () => {
+                    if (!selectedFeature) return;
+                    const id = selectedFeature.properties.id;
+                    showConfirm('Apakah Anda yakin ingin menghapus bangunan 3D ini?', () => {
+                        cadastreData.features = cadastreData.features.filter(f => f.properties.id !== id);
+                        removeFeatureRemote(id);
+                        refreshCadastreSource();
+                        window.closeAllAttrPanels();
+                        selectedFeature = null;
+                        showAlert('Bangunan berhasil dihapus.', 'fa-circle-check', '#10b981');
+                    });
+                });
+
+                document.getElementById('attr-jalan-lebar').addEventListener('input', () => {
+                    if (!selectedFeature || selectedFeature.properties.category !== 'jalan') return;
+                    let len = 0;
+                    try { len = turf.length(selectedFeature, { units: 'meters' }); } catch (err) {}
+                    renderJalanInfo(selectedFeature, len);
+                });
+
+                document.getElementById('btn-save-jalan').addEventListener('click', () => {
+                    if (!selectedFeature) return;
+                    const f = findFeatureById(selectedFeature.properties.id);
+                    if (!f) return;
+
+                    f.properties.nama = document.getElementById('attr-jalan-nama').value;
+                    f.properties.fungsi = document.getElementById('attr-jalan-fungsi').value;
+                    f.properties.lebar = parseFloat(document.getElementById('attr-jalan-lebar').value) || 8;
+                    f.properties.perkerasan = document.getElementById('attr-jalan-perkerasan').value;
+
+                    selectedFeature = f;
+                    refreshCadastreSource();
+                    persistFeature(f);
+                    showAlert('Data jalan berhasil disimpan.', 'fa-circle-check', '#10b981');
+                });
+
+                document.getElementById('btn-delete-jalan').addEventListener('click', () => {
+                    if (!selectedFeature) return;
+                    const id = selectedFeature.properties.id;
+                    showConfirm('Apakah Anda yakin ingin menghapus ruas jalan ini?', () => {
+                        cadastreData.features = cadastreData.features.filter(f => f.properties.id !== id);
+                        removeFeatureRemote(id);
+                        refreshCadastreSource();
+                        window.closeAllAttrPanels();
+                        selectedFeature = null;
+                        showAlert('Data jalan berhasil dihapus.', 'fa-circle-check', '#10b981');
+                    });
+                });
+            }
+
+            /* ===================== HOVER POPUP INFO ===================== */
+
+            function setupHoverPopup() {
+                map.on('mousemove', (e) => {
+                    if (isMeasurementMode || activeDrawType) return;
+
+                    const violFeatures = map.queryRenderedFeatures(e.point, { layers: ['cadastre-violation-marker'] });
+                    if (violFeatures.length) {
+                        map.getCanvas().style.cursor = 'pointer';
+                        if (!activePopup) {
+                            activePopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
+                        }
+                        activePopup.setLngLat(e.lngLat).setHTML(
+                            `<strong style="color:#f43f5e;"><i class="fa-solid fa-triangle-exclamation"></i> Pelanggaran KDB/RTH</strong><br><span style="color:#94a3b8;">Klik untuk lihat estimasi denda</span>`
+                        ).addTo(map);
+                        return;
+                    }
+
+                    const features = map.queryRenderedFeatures(e.point, {
+                        layers: ['cadastre-fill', 'cadastre-3d-extrusion', 'cadastre-road-line']
+                    });
+
+                    if (features.length) {
+                        map.getCanvas().style.cursor = 'pointer';
+                        const p = features[0].properties;
+                        let html = '';
+
+                        if (p.category === 'bidang') {
+                            html = `<strong>${p.nib || 'Bidang Tanah'}</strong><br>${p.pemilik || '-'}<br><span style="color:#94a3b8;">Zona: ${p.zona || '-'}</span>`;
+                        } else if (p.category === 'bangunan') {
+                            html = `<strong>${p.fungsi || 'Bangunan'}</strong><br>NIB: ${p.nib || '-'}<br><span style="color:#94a3b8;">Lantai: ${p.jumlah_lantai || 1}</span>`;
+                        } else if (p.category === 'jalan') {
+                            html = `<strong>${p.nama || 'Jalan'}</strong><br><span style="color:#94a3b8;">${p.fungsi || '-'} • ${p.lebar || '-'} m</span>`;
+                        }
+
+                        if (!activePopup) {
+                            activePopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
+                        }
+                        activePopup.setLngLat(e.lngLat).setHTML(html).addTo(map);
+                    } else {
+                        map.getCanvas().style.cursor = '';
+                        if (activePopup) activePopup.remove();
+                    }
+                });
+
+                map.on('mouseout', () => {
+                    if (activePopup) activePopup.remove();
+                });
+            }
+
+            /* ===================== IMPORT SHP / GEOJSON ===================== */
+            /* ---- Auto-mapping atribut: menerjemahkan skema field sumber data (mis. hasil
+               ekspor ArcGIS/OSM dengan nama field NIB/STATUS/TIPE_HAK/fungsi/height_m/dst)
+               ke skema internal aplikasi (nib/pemilik/zona/fungsi/hak/status/height/dst)
+               secara otomatis, tanpa perlu mengedit satu-persatu setelah import. ---- */
+
+            // Ambil nilai pertama yang "berisi" dari beberapa kemungkinan nama field,
+            // pencocokan nama field tidak peka huruf besar/kecil, spasi, underscore, atau strip.
+            function ciValue(props, aliases) {
+                if (!props) return undefined;
+                const norm = (s) => String(s).toLowerCase().replace(/[\s_\-:]/g, '');
+                const map = {};
+                Object.keys(props).forEach(k => { map[norm(k)] = props[k]; });
+                for (const alias of aliases) {
+                    const v = map[norm(alias)];
+                    if (v === undefined || v === null) continue;
+                    if (typeof v === 'string') {
+                        const t = v.trim();
+                        if (t !== '') return t;
+                    } else if (typeof v === 'number') {
+                        if (v !== 0) return v;
+                    } else {
+                        return v;
+                    }
+                }
+                return undefined;
+            }
+
+            // Membersihkan nomor NIB hasil import (angka 0 / "0" / null dianggap kosong).
+            function cleanNib(raw) {
+                if (raw === undefined || raw === null) return '';
+                const s = String(raw).trim();
+                if (s === '' || s === '0' || /^0+$/.test(s) || s.toLowerCase() === 'null' || s.toLowerCase() === 'na') return '';
+                return s;
+            }
+
+            // Deteksi kategori peruntukan/fungsi lahan dari teks bebas (Bahasa Indonesia & Inggris).
+            const ZONA_LABELS = { permukiman: 'Permukiman', komersial: 'Komersial', industri: 'Industri', fasum: 'Fasilitas Umum' };
+            const FUNGSI_BGN_LABELS = { permukiman: 'Rumah / Permukiman', komersial: 'Komersial / Usaha', industri: 'Industri / Pabrik', fasum: 'Fasilitas Umum' };
+            function detectLandUseCategory(raw) {
+                if (raw === undefined || raw === null) return null;
+                const s = String(raw).trim().toLowerCase();
+                if (!s) return null;
+                if (/(rumah|hunian|permukiman|residential|perumahan|house|apartemen)/.test(s)) return 'permukiman';
+                if (/(komersial|usaha|dagang|perdagangan|toko|ruko|commercial|retail|bisnis|office|kantor\s*sewa)/.test(s)) return 'komersial';
+                if (/(industri|pabrik|gudang|industrial|warehouse|manufaktur)/.test(s)) return 'industri';
+                if (/(pemerintah|fasilitas|fasum|sekolah|kantor|kesehatan|puskesmas|ibadah|masjid|gereja|public|school|hospital|civic|government)/.test(s)) return 'fasum';
+                return null;
+            }
+            // Fallback khusus untuk tag OSM `building=` yang nilainya berupa kode (house, yes, commercial, dst).
+            function detectBuildingTagCategory(raw) {
+                if (!raw) return null;
+                const s = String(raw).trim().toLowerCase();
+                const map = {
+                    house: 'permukiman', residential: 'permukiman', apartments: 'permukiman', detached: 'permukiman',
+                    terrace: 'permukiman', semidetached_house: 'permukiman', bungalow: 'permukiman', dormitory: 'permukiman',
+                    commercial: 'komersial', retail: 'komersial', office: 'komersial', shop: 'komersial', supermarket: 'komersial', hotel: 'komersial',
+                    industrial: 'industri', warehouse: 'industri', factory: 'industri',
+                    school: 'fasum', hospital: 'fasum', government: 'fasum', civic: 'fasum', public: 'fasum', church: 'fasum', mosque: 'fasum', university: 'fasum', college: 'fasum'
+                };
+                return map[s] || null;
+            }
+            function detectHak(raw) {
+                if (!raw) return '';
+                const s = String(raw).trim().toLowerCase();
+                if (!s) return '';
+                if (/(shm|hak\s*milik)/.test(s)) return 'Hak Milik';
+                if (/(hgb|guna\s*bangunan)/.test(s)) return 'HGB';
+                if (/(hpl|pengelolaan)/.test(s)) return 'Hak Pengelolaan';
+                if (/(^hp$|hak\s*pakai)/.test(s)) return 'Hak Pakai';
+                return '';
+            }
+            function detectStatusTanah(raw) {
+                if (!raw) return '';
+                const s = String(raw).trim().toLowerCase();
+                if (!s) return '';
+                if (/(sengketa|dispute|bermasalah)/.test(s)) return 'Sengketa';
+                if (/(belum)/.test(s)) return 'Belum Terdaftar';
+                if (/(aman|terdaftar|bersertifikat|clear|valid)/.test(s)) return 'Terdaftar';
+                return '';
+            }
+            // Menghasilkan NIB otomatis (fallback) ketika data sumber import TIDAK
+            // menyertakan nomor NIB sama sekali, meniru perilaku auto-mapping pada
+            // kadaster3d_AutoMapping_CSSInternal: bidang -> "IMP-<urutan>", bangunan ->
+            // format ala NIB nasional "08.01.01.01.<5 digit acak>". Ini menjamin setiap
+            // fitur hasil import SELALU punya NIB terisi, tidak pernah kosong.
+            function generateAutoNib(effectiveCategory, idx) {
+                if (effectiveCategory === 'bangunan') {
+                    return '08.01.01.01.' + Math.floor(10000 + Math.random() * 90000);
+                }
+                return 'IMP-' + (idx + 1);
+            }
+            function detectPerkerasan(raw) {
+                if (!raw) return null;
+                const s = String(raw).trim().toLowerCase();
+                if (/(asphalt|aspal|hotmix)/.test(s)) return 'Aspal Hotmix';
+                if (/(concrete|beton|rigid)/.test(s)) return 'Beton / Rigid';
+                if (/(paving|paved|block)/.test(s)) return 'Paving Block';
+                if (/(unpaved|ground|dirt|gravel|sand|tanah|sirtu)/.test(s)) return 'Tanah / Sirtu';
+                return null;
+            }
+            function detectFungsiJalan(raw) {
+                if (!raw) return null;
+                const s = String(raw).trim().toLowerCase();
+                if (/(motorway|trunk|primary|arteri)/.test(s)) return 'Jalan Arteri / Utama';
+                if (/(secondary|kolektor)/.test(s)) return 'Jalan Kolektor';
+                if (/(tertiary|unclassified|lokal)/.test(s)) return 'Jalan Lokal';
+                if (/(residential|living_street|service|footway|path|track|lingkungan)/.test(s)) return 'Jalan Lingkungan';
+                return null;
+            }
+
+            // Menerjemahkan properti mentah hasil import ke skema atribut internal aplikasi,
+            // sesuai kategori (bidang / bangunan / jalan). Nilai yang tidak dikenali akan
+            // dikembalikan sebagai undefined agar nilai default bawaan tetap berlaku.
+            function normalizeImportedAttributes(rawProps, effectiveCategory) {
+                const out = {};
+                const nibRaw = ciValue(rawProps, ['nib', 'no_hak', 'nomor_induk_bidang', 'nomor_hak', 'no_bidang', 'no_sertifikat']);
+                const nib = cleanNib(nibRaw);
+                if (nib) out.nib = nib;
+
+                if (effectiveCategory === 'bidang') {
+                    const pemilikRaw = ciValue(rawProps, ['pemilik', 'nama_pemilik', 'owner', 'nama_hak', 'nama_subjek']);
+                    if (pemilikRaw) out.pemilik = String(pemilikRaw).trim();
+
+                    const zonaRaw = ciValue(rawProps, ['zona', 'zone', 'peruntukan', 'land_use', 'landuse', 'fungsi']);
+                    const zonaCat = detectLandUseCategory(zonaRaw);
+                    if (zonaCat) out.zona = ZONA_LABELS[zonaCat];
+
+                } else if (effectiveCategory === 'bangunan') {
+                    const hakRaw = ciValue(rawProps, ['hak', 'tipe_hak', 'jenis_hak', 'sertifikat']);
+                    out.hak = detectHak(hakRaw);
+
+                    const statusRaw = ciValue(rawProps, ['status', 'status_tanah', 'keterangan']);
+                    out.status = detectStatusTanah(statusRaw);
+
+                    const heightRaw = ciValue(rawProps, ['height', 'height_m', 'tinggi', 'building:height']);
+                    const heightNum = heightRaw !== undefined ? parseFloat(heightRaw) : NaN;
+
+                    const lantaiRaw = ciValue(rawProps, ['jumlah_lantai', 'levels', 'building:levels', 'lantai']);
+                    let lantaiNum = lantaiRaw !== undefined ? parseInt(lantaiRaw, 10) : NaN;
+                    if (!Number.isFinite(lantaiNum) || lantaiNum < 1) {
+                        lantaiNum = (Number.isFinite(heightNum) && heightNum > 0) ? Math.max(1, Math.round(heightNum / 3)) : undefined;
+                    }
+                    if (lantaiNum) out.jumlah_lantai = lantaiNum;
+                    if (Number.isFinite(heightNum) && heightNum > 0) {
+                        out.height = heightNum;
+                    } else if (lantaiNum) {
+                        out.height = lantaiNum * 3;
+                    }
+
+                    const fungsiRaw = ciValue(rawProps, ['fungsi', 'land_use', 'landuse', 'jenis_bangunan', 'kegunaan']);
+                    let fungsiCat = detectLandUseCategory(fungsiRaw);
+                    if (!fungsiCat) {
+                        const buildingTagRaw = ciValue(rawProps, ['building']);
+                        fungsiCat = detectBuildingTagCategory(buildingTagRaw);
+                    }
+                    if (fungsiCat) out.fungsi = FUNGSI_BGN_LABELS[fungsiCat];
+
+                    // Cadangan luas: dipakai di panel atribut HANYA jika luas dari geometri asli
+                    // (footprint bangunan) atau pencocokan bidang via NIB tidak tersedia. Ini meniru
+                    // perilaku buildingArea/parcelArea pada kadaster3d_AutoMapping_CSSInternal, supaya
+                    // Luas Bangunan & Luas Bidang tetap otomatis terisi dari data sumber import.
+                    const luasBgnRaw = ciValue(rawProps, ['luas_bangunan', 'LUAS_BGN', 'buildingArea', 'luas_lantai_dasar']);
+                    const luasBgnNum = luasBgnRaw !== undefined ? parseFloat(luasBgnRaw) : NaN;
+                    if (Number.isFinite(luasBgnNum) && luasBgnNum > 0) out.luas_bangunan_import = luasBgnNum;
+
+                    const luasBdgRaw = ciValue(rawProps, ['luas_bidang', 'LUAS_TANAH', 'luas_tanah', 'parcelArea']);
+                    const luasBdgNum = luasBdgRaw !== undefined ? parseFloat(luasBdgRaw) : NaN;
+                    if (Number.isFinite(luasBdgNum) && luasBdgNum > 0) out.luas_bidang_import = luasBdgNum;
+
+                } else if (effectiveCategory === 'jalan') {
+                    const namaRaw = ciValue(rawProps, ['nama', 'name', 'ref', 'alt_name']);
+                    if (namaRaw) out.nama = String(namaRaw).trim();
+
+                    const fungsiJalanRaw = ciValue(rawProps, ['fungsi', 'highway', 'kelas_jalan']);
+                    const fungsiJalan = detectFungsiJalan(fungsiJalanRaw);
+                    if (fungsiJalan) out.fungsi = fungsiJalan;
+
+                    const lebarRaw = ciValue(rawProps, ['lebar', 'width']);
+                    const lebarNum = lebarRaw !== undefined ? parseFloat(lebarRaw) : NaN;
+                    if (Number.isFinite(lebarNum) && lebarNum > 0) {
+                        out.lebar = lebarNum;
+                    } else {
+                        const lanesRaw = ciValue(rawProps, ['lanes']);
+                        const lanesNum = lanesRaw !== undefined ? parseFloat(lanesRaw) : NaN;
+                        if (Number.isFinite(lanesNum) && lanesNum > 0) out.lebar = lanesNum * 3;
+                    }
+
+                    const perkerasanRaw = ciValue(rawProps, ['perkerasan', 'surface']);
+                    const perkerasan = detectPerkerasan(perkerasanRaw);
+                    if (perkerasan) out.perkerasan = perkerasan;
+                }
+
+                return out;
+            }
+
+            async function handleImportFile(file, category) {
+                try {
+                    let geojson;
+                    if (/\.zip$/i.test(file.name)) {
+                        const buffer = await file.arrayBuffer();
+                        geojson = await shp(buffer);
+                    } else {
+                        const text = await file.text();
+                        geojson = JSON.parse(text);
+                    }
+
+                    let feats = [];
+                    if (Array.isArray(geojson)) {
+                        geojson.forEach(fc => { if (fc && fc.features) feats = feats.concat(fc.features); });
+                    } else if (geojson.type === 'FeatureCollection') {
+                        feats = geojson.features;
+                    } else if (geojson.type === 'Feature') {
+                        feats = [geojson];
+                    }
+
+                    if (!feats.length) {
+                        showAlert('File tidak berisi data spasial yang valid.', 'fa-triangle-exclamation', '#f43f5e');
+                        return;
+                    }
+
+                    let forcedRoadCount = 0;
+                    let mappedAttrCount = 0;
+                    let autoNibCount = 0;
+
+                    feats.forEach((f, idx) => {
+                        const rawProps = f.properties || {};
+
+                        // Data bertipe Line/LineString/MultiLineString selalu didefinisikan sebagai
+                        // Jalan 2D, apapun tombol upload yang dipakai — garis tidak bisa merepresentasikan
+                        // bidang tanah (polygon) atau bangunan 3D (extrusion).
+                        const geomType = f.geometry ? f.geometry.type : null;
+                        const isLineGeom = geomType === 'LineString' || geomType === 'MultiLineString';
+                        const effectiveCategory = isLineGeom ? 'jalan' : category;
+                        if (isLineGeom && category !== 'jalan') forcedRoadCount++;
+
+                        // Terjemahkan skema atribut sumber data (mis. field NIB/STATUS/TIPE_HAK/fungsi/
+                        // height_m ala ArcGIS/OSM) ke skema internal aplikasi secara otomatis.
+                        const normalized = normalizeImportedAttributes(rawProps, effectiveCategory);
+                        if (Object.keys(normalized).length > 0) mappedAttrCount++;
+
+                        const existingId = ciValue(rawProps, ['id']);
+                        // Semua atribut asli dari file sumber TETAP disimpan (bukan dibuang), lalu
+                        // ditimpa oleh field hasil auto-mapping (nib/fungsi/hak/status/dll) agar
+                        // formulir & kalkulasi memakai nilai yang sudah dipetakan, sementara atribut
+                        // asli lain yang tidak dikenali tetap tersimpan dan bisa ditampilkan di tabel
+                        // "Atribut Data Asal (Import)" pada panel detail fitur.
+                        f.properties = Object.assign({}, rawProps, normalized);
+                        f.properties.category = effectiveCategory;
+                        f.properties.sumber = 'import';
+                        f.properties.id = existingId ? String(existingId) : (effectiveCategory + '-import-' + Date.now() + '-' + idx);
+
+                        // Lengkapi nilai default hanya untuk field yang benar-benar belum berhasil dipetakan.
+                        // Khusus NIB: jika data sumber tidak punya nomor NIB, buatkan otomatis
+                        // (generateAutoNib) agar NIB SELALU terisi setelah import (bidang & bangunan).
+                        if (effectiveCategory === 'bangunan') {
+                            f.properties.fungsi = f.properties.fungsi || 'Rumah / Permukiman';
+                            f.properties.jumlah_lantai = f.properties.jumlah_lantai || 1;
+                            f.properties.height = f.properties.height || (f.properties.jumlah_lantai * 3);
+                            f.properties.base_height = f.properties.base_height || 0;
+                            f.properties.hak = f.properties.hak || '';
+                            f.properties.status = f.properties.status || '';
+                            if (!f.properties.nib) { f.properties.nib = generateAutoNib('bangunan', idx); autoNibCount++; }
+                        } else if (effectiveCategory === 'bidang') {
+                            f.properties.zona = f.properties.zona || 'Permukiman';
+                            f.properties.pemilik = f.properties.pemilik || 'Pemilik Import';
+                            if (!f.properties.nib) { f.properties.nib = generateAutoNib('bidang', idx); autoNibCount++; }
+                        } else if (effectiveCategory === 'jalan') {
+                            f.properties.nama = f.properties.nama || '';
+                            f.properties.fungsi = f.properties.fungsi || 'Jalan Lingkungan';
+                            f.properties.lebar = f.properties.lebar || 8;
+                            f.properties.perkerasan = f.properties.perkerasan || 'Aspal Hotmix';
                         }
 
                         cadastreData.features.push(f);
-                        await setDoc(doc(db, "parcels", f.properties.id), f);
-                    }
-
-                    refreshAllLayers();
-                    map.fitBounds(turf.bbox({ type: "FeatureCollection", features: features }), { padding: 60, maxZoom: 19 });
-                    alert(`Berhasil meng-import ${features.length} objek ${categoryType.toUpperCase()} ke Firestore!`);
-
-                } catch (err) {
-                    console.error("Detail Error Import:", err);
-                    alert("Gagal mengurai file. Pastikan file .zip (SHP/DBF/PRJ/SHX) atau .geojson valid.\n\nDetail: " + err.message);
-                }
-            };
-
-            document.getElementById('input-import-2d').addEventListener('change', (e) => handleUpload(e.target.files[0], 'bidang', 0));
-            document.getElementById('input-import-3d').addEventListener('change', (e) => handleUpload(e.target.files[0], 'bangunan', 3));
-            document.getElementById('input-import-aoi').addEventListener('change', (e) => handleUpload(e.target.files[0], 'aoi', 0));
-
-            // Digitize buttons
-            document.getElementById('btn-draw-parcel').addEventListener('click', () => { activeDrawType = 'bidang'; Draw.changeMode('draw_polygon'); });
-            document.getElementById('btn-draw-road').addEventListener('click', () => { activeDrawType = 'jalan'; Draw.changeMode('draw_line_string'); });
-            document.getElementById('btn-draw-3d').addEventListener('click', () => { activeDrawType = 'bangunan'; Draw.changeMode('draw_polygon'); });
-
-            // Bulk delete
-            document.getElementById('btn-select-bulk-delete').addEventListener('click', () => {
-                if (!currentUser) return;
-                isBulkDeleteMode = true;
-                Draw.deleteAll();
-                Draw.changeMode('draw_polygon');
-                alert("Gambar poligon pada peta untuk memilih area dan menghapus objek massal.");
-            });
-
-            map.on('draw.create', async (e) => {
-                const drawnPolygon = e.features[0];
-
-                if (isBulkDeleteMode) {
-                    const toDelete = cadastreData.features.filter(f => {
-                        try { return turf.booleanIntersects(f, drawnPolygon); } catch (err) { return false; }
+                        persistFeature(f);
                     });
 
-                    if (toDelete.length === 0) {
-                        alert("Tidak ada objek di dalam area yang dipilih.");
-                        Draw.deleteAll();
-                        isBulkDeleteMode = false;
-                        return;
+                    refreshCadastreSource();
+
+                    let msg = `${feats.length} fitur berhasil diimpor ke peta.`;
+                    if (mappedAttrCount > 0) {
+                        msg += ` Atribut ${mappedAttrCount} fitur otomatis disesuaikan (mapping NIB/fungsi/hak/status/dll) ke skema aplikasi.`;
                     }
-
-                    if (confirm(`Ditemukan ${toDelete.length} objek. Yakin ingin MENGHAPUS SEMUA objek ini dari Firestore secara permanen?`)) {
-                        for (let item of toDelete) {
-                            if (item.properties.id) await deleteDoc(doc(db, "parcels", item.properties.id));
-                        }
-                        const idsToDelete = new Set(toDelete.map(x => x.properties.id));
-                        cadastreData.features = cadastreData.features.filter(f => !idsToDelete.has(f.properties.id));
-                        refreshAllLayers();
-                        alert(`${toDelete.length} objek berhasil dihapus massal!`);
+                    if (forcedRoadCount > 0) {
+                        msg += ` ${forcedRoadCount} di antaranya bergeometri garis (LineString) sehingga otomatis dikategorikan sebagai Jalan 2D.`;
                     }
-
-                    Draw.deleteAll();
-                    isBulkDeleteMode = false;
-                } else if (activeDrawType) {
-                    let newFeat = drawnPolygon;
-                    newFeat.properties.id = 'dig-' + Date.now();
-                    newFeat.properties.category = activeDrawType;
-
-                    if (activeDrawType === 'bangunan') {
-                        newFeat.properties.height = 12;
-                        newFeat.properties.base_height = 3;
-                        newFeat.geometry.coordinates = injectZCoordinate(newFeat.geometry.coordinates, 3);
-                    } else if (activeDrawType === 'jalan') {
-                        newFeat.properties.lebar = 8;
+                    if (autoNibCount > 0) {
+                        msg += ` ${autoNibCount} fitur tidak memiliki NIB pada data asal sehingga NIB dibuatkan otomatis oleh sistem.`;
                     }
-
-                    cadastreData.features.push(newFeat);
-                    await setDoc(doc(db, "parcels", newFeat.properties.id), newFeat);
-
-                    Draw.deleteAll();
-                    activeDrawType = null;
-                    refreshAllLayers();
-                    alert("Objek hasil digitasi berhasil disimpan ke Firestore!");
-                }
-            });
-        }
-
-        function setupAuthListeners() {
-            const authBtn = document.getElementById('auth-action-btn');
-            const loginModal = document.getElementById('login-modal');
-
-            authBtn.addEventListener('click', () => {
-                if (currentUser) signOut(auth);
-                else loginModal.classList.remove('hidden');
-            });
-
-            document.getElementById('close-login-modal').addEventListener('click', () => loginModal.classList.add('hidden'));
-
-            document.getElementById('login-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                try {
-                    await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
-                    loginModal.classList.add('hidden');
+                    showAlert(msg, 'fa-circle-check', '#10b981');
                 } catch (err) {
-                    document.getElementById('login-error-msg').style.display = "block";
+                    console.error(err);
+                    showAlert('Gagal mengimpor file: ' + (err.message || 'Format file tidak didukung.'), 'fa-triangle-exclamation', '#f43f5e');
                 }
-            });
+            }
 
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                const editorBtn = document.getElementById('mode-btn-editor');
-                const toolsCont = document.getElementById('digitize-buttons-container');
-
-                if (user) {
-                    authBtn.innerHTML = `<i class="fa-solid fa-right-from-bracket"></i> Logout`;
-                    authBtn.className = "btn btn-logout";
-                    editorBtn.classList.remove('btn-disabled');
-                    editorBtn.onclick = () => {
-                        toolsCont.classList.remove('hidden');
-                        document.getElementById('current-mode-badge').innerText = "Mode Editor (Admin)";
-                        document.getElementById('mode-btn-info').className = "btn btn-mode-inactive";
-                        editorBtn.className = "btn btn-mode-active";
-                        closeAllAttrPanels();
-                    };
-                } else {
-                    authBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Login`;
-                    authBtn.className = "btn btn-login";
-                    editorBtn.classList.add('btn-disabled');
-                    editorBtn.onclick = null;
-                    toolsCont.classList.add('hidden');
-                    document.getElementById('current-mode-badge').innerText = "Mode Info (Publik)";
-                    document.getElementById('mode-btn-info').className = "btn btn-mode-active";
-                    editorBtn.className = "btn btn-mode-inactive btn-disabled";
-                    closeAllAttrPanels();
-                }
-            });
-
-            document.getElementById('mode-btn-info').addEventListener('click', () => {
-                document.getElementById('digitize-buttons-container').classList.add('hidden');
-                document.getElementById('current-mode-badge').innerText = "Mode Info (Publik)";
-                document.getElementById('mode-btn-info').className = "btn btn-mode-active";
-                document.getElementById('mode-btn-editor').className = "btn btn-mode-inactive" + (currentUser ? "" : " btn-disabled");
-                closeAllAttrPanels();
-            });
-        }
-
-        function setupExportAndPrintTools() {
-            document.getElementById('btn-export-geojson').addEventListener('click', () => {
-                const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cadastreData, null, 2));
-                const a = document.createElement('a'); a.href = str; a.download = `WebGIS_Export_${Date.now()}.geojson`;
-                document.body.appendChild(a); a.click(); a.remove();
-            });
-
-            document.getElementById('btn-screenshot-png').addEventListener('click', () => {
-                map.once('render', () => {
-                    const a = document.createElement('a'); a.href = map.getCanvas().toDataURL("image/png");
-                    a.download = `WebGIS_Map_${Date.now()}.png`; document.body.appendChild(a); a.click(); a.remove();
+            function setupImports() {
+                const map2 = { 'input-import-2d': 'bidang', 'input-import-jalan': 'jalan', 'input-import-3d': 'bangunan', 'input-import-aoi': 'aoi' };
+                Object.keys(map2).forEach(inputId => {
+                    document.getElementById(inputId).addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (file) handleImportFile(file, map2[inputId]);
+                        e.target.value = '';
+                    });
                 });
-                map.triggerRepaint();
-            });
+            }
 
-            document.getElementById('btn-print-pdf').addEventListener('click', () => {
-                map.once('render', () => {
-                    const imgData = map.getCanvas().toDataURL("image/png");
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('landscape', 'mm', 'a4');
-                    pdf.text("PETA CADASTRAL WEBGIS", 14, 15);
-                    pdf.addImage(imgData, 'PNG', 14, 25, 269, 165);
-                    pdf.save(`Peta_Cadastral_${Date.now()}.pdf`);
+            /* ===================== EKSPOR DATA ===================== */
+
+            function downloadBlob(content, filename, mime) {
+                const blob = new Blob([content], { type: mime });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            function downloadURL(url, filename) {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+
+            function csvEscape(val) {
+                const s = String(val === undefined || val === null ? '' : val);
+                return '"' + s.replace(/"/g, '""') + '"';
+            }
+
+            function setupExports() {
+                document.getElementById('btn-export-geojson').addEventListener('click', () => {
+                    downloadBlob(JSON.stringify(cadastreData, null, 2), 'cadastral-data.geojson', 'application/geo+json');
                 });
-                map.triggerRepaint();
-            });
 
-            document.getElementById('basemap-select').addEventListener('change', (e) => {
-                const val = e.target.value;
-                map.setStyle({
-                    version: 8,
-                    sources: {
-                        'esri-satellite': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 },
-                        'carto-dark': { type: 'raster', tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], tileSize: 256 },
-                        'osm': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256 }
-                    },
-                    layers: [{ id: 'base-layer', type: 'raster', source: val === 'esri_sat' ? 'esri-satellite' : val === 'carto_dark' ? 'carto-dark' : 'osm' }]
+                document.getElementById('btn-export-csv').addEventListener('click', () => {
+                    const header = ['NIB', 'Pemilik', 'Zona', 'Luas Bidang (m2)', 'KDB (%)', 'RTH Realisasi (%)', 'Status Kepatuhan', 'Estimasi Denda (Rp)', 'Catatan Pelanggaran'];
+                    const rows = [header.map(csvEscape).join(',')];
+
+                    cadastreData.features.forEach(f => {
+                        if (f.properties.category !== 'bidang') return;
+                        const info = getBidangViolationInfo(f);
+                        const calc = info.calc;
+                        rows.push([
+                            csvEscape(f.properties.nib || ''),
+                            csvEscape(f.properties.pemilik || ''),
+                            csvEscape(calc.zona),
+                            csvEscape(Math.round(calc.bidangArea)),
+                            csvEscape(calc.kdb.toFixed(1)),
+                            csvEscape(calc.rthPercent.toFixed(1)),
+                            csvEscape(info.isViolating ? 'Melanggar' : 'Patuh'),
+                            csvEscape(info.denda),
+                            csvEscape(info.details.join(' | '))
+                        ].join(','));
+                    });
+
+                    downloadBlob('\uFEFF' + rows.join('\r\n'), 'laporan-bidang-tanah.csv', 'text/csv;charset=utf-8');
                 });
-                map.once('style.load', () => initMapLayers());
-            });
-        }
 
-        function setupCameraControls() {
-            document.getElementById('float-btn-2d').addEventListener('click', function() {
-                map.easeTo({ pitch: 0 });
-                this.className = 'btn-cam btn-cam-active';
-                document.getElementById('float-btn-3d').className = 'btn-cam';
-            });
+                document.getElementById('btn-screenshot-png').addEventListener('click', () => {
+                    map.triggerRepaint();
+                    map.once('idle', () => {
+                        try {
+                            const url = map.getCanvas().toDataURL('image/png');
+                            downloadURL(url, 'peta-cadastral.png');
+                        } catch (err) {
+                            showAlert('Gagal mengambil tangkapan layar peta.', 'fa-triangle-exclamation', '#f43f5e');
+                        }
+                    });
+                });
 
-            document.getElementById('float-btn-3d').addEventListener('click', function() {
-                map.easeTo({ pitch: 55 });
-                this.className = 'btn-cam btn-cam-active';
-                document.getElementById('float-btn-2d').className = 'btn-cam';
-            });
+                document.getElementById('btn-print-pdf').addEventListener('click', () => {
+                    map.triggerRepaint();
+                    map.once('idle', () => {
+                        try {
+                            const canvas = map.getCanvas();
+                            const imgData = canvas.toDataURL('image/png');
+                            const { jsPDF } = window.jspdf;
+                            const pdf = new jsPDF({
+                                orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+                                unit: 'px',
+                                format: [canvas.width, canvas.height]
+                            });
+                            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                            pdf.save('peta-cadastral.pdf');
+                        } catch (err) {
+                            showAlert('Gagal membuat file PDF.', 'fa-triangle-exclamation', '#f43f5e');
+                        }
+                    });
+                });
+            }
 
-            document.getElementById('btn-rotate-ccw').addEventListener('click', () => map.easeTo({ bearing: map.getBearing() - 45, duration: 400 }));
-            document.getElementById('btn-rotate-cw').addEventListener('click', () => map.easeTo({ bearing: map.getBearing() + 45, duration: 400 }));
-            document.getElementById('btn-reset-north').addEventListener('click', () => map.easeTo({ bearing: 0, pitch: 0, duration: 500 }));
-        }
+            map.on('load', () => {
+                initMapLayers();
+                setupCameraControls();
+                setupAuth();
+                setupBasemap();
+                setupLayerToggles();
+                setupInteractions();
+                setupSearchAndFilters();
+                setupDigitizing();
+                setupMeasurement();
+                setupAttributeForms();
+                setupExtraAttributeToggles();
+                setupHoverPopup();
+                setupImports();
+                setupExports();
+                setupViolationUI();
+            });
+        })();
     </script>
 </body>
 </html>

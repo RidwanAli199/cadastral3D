@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGIS Cadastral 2D & 3D - Full Features</title>
+
+    <!-- MapLibre GL CSS & JS -->
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+
+    <!-- Mapbox Draw CSS & JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.css" type="text/css" />
+
+    <!-- Turf.js & shpjs -->
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+
+    <!-- jsPDF untuk Fitur Cetak PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- FontAwesome & Tailwind CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background-color: #0f172a; color: #f8fafc; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; height: 100%; }
+        .btn-mode-active { background-color: #0284c7; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .btn-mode-inactive { background-color: #334155; color: #94a3b8; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .btn-float-active { background-color: #0284c7; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        .btn-float-inactive { background-color: #1e293b; color: #94a3b8; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        .btn-action-info { width: 100%; background-color: #1e293b; hover:background-color: #334155; border: 1px solid #334155; color: #38bdf8; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: left; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+        .btn-action-info:hover { background-color: #334155; border-color: #0284c7; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <!-- UI Panel Kiri -->
+    <div class="absolute top-4 left-4 z-10 flex flex-col gap-2 max-w-sm">
+        <div class="bg-slate-900/90 border border-slate-700 p-4 rounded-xl shadow-xl backdrop-blur-md">
+            <div class="flex justify-between items-center mb-1">
+                <h1 class="text-base font-bold text-sky-400 flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group"></i> WebGIS Cadastral 2D & 3D
+                </h1>
+                <button id="auth-action-btn" class="text-xs bg-sky-600 hover:bg-sky-500 text-white px-2.5 py-1 rounded font-semibold transition">
+                    <i class="fa-solid fa-right-to-bracket"></i> Login
+                </button>
+            </div>
+            <p class="text-xs text-slate-400">Sistem Informasi Pertanahan & Monitoring RTH</p>
+            
+            <div class="flex items-center gap-2 mt-3">
+                <button id="mode-btn-info" class="btn-mode-active">Mode Info</button>
+                <button id="mode-btn-editor" class="btn-mode-inactive opacity-50 cursor-not-allowed" title="Login untuk membuka Mode Editor">Mode Editor <i class="fa-solid fa-lock text-[10px]"></i></button>
+                <span id="current-mode-badge" class="ml-auto text-[10px] bg-slate-800 text-sky-400 px-2 py-1 rounded border border-slate-700 font-mono">Mode Info (Publik)</span>
+            </div>
+        </div>
+
+        <!-- Panel Ringkasan Statistik -->
+        <div class="bg-slate-900/90 border border-slate-700 p-3 rounded-xl shadow-xl backdrop-blur-md grid grid-cols-2 gap-2 text-center text-xs">
+            <div class="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                <div class="text-slate-400 text-[10px]">Total Persil</div>
+                <div id="stat-total-parcels" class="text-lg font-bold text-sky-400">0</div>
+            </div>
+            <div class="bg-slate-800/80 p-2 rounded-lg border border-slate-700">
+                <div class="text-slate-400 text-[10px]">Pelanggaran RTH</div>
+                <div id="stat-violations" class="text-lg font-bold text-rose-400">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI Panel Kanan: Basemap & Fitur Ekspor/Cetak -->
+    <div class="absolute top-4 right-4 z-10 flex flex-col gap-2 w-56">
+        <!-- Pilihan Basemap -->
+        <div class="bg-slate-900/90 border border-slate-700 p-3 rounded-xl shadow-xl backdrop-blur-md flex flex-col gap-2 text-xs">
+            <label class="text-[11px] font-semibold text-slate-300">Pilihan Basemap</label>
+            <select id="basemap-select" class="bg-slate-800 text-slate-200 border border-slate-700 p-2 rounded text-xs focus:outline-none w-full">
+                <option value="esri_sat">Esri Satellite</option>
+                <option value="carto_dark">CARTO Dark Matter</option>
+                <option value="osm">OpenStreetMap</option>
+            </select>
+        </div>
+
+        <!-- Fitur Mode Info (Eksport GeoJSON, Tangkap Layar PNG, Cetak PDF) -->
+        <div class="bg-slate-900/90 border border-slate-700 p-3 rounded-xl shadow-xl backdrop-blur-md flex flex-col gap-2 text-xs">
+            <button id="btn-export-geojson" class="btn-action-info">
+                <i class="fa-solid fa-file-arrow-down text-sky-400"></i>
+                <span>Ekspor GeoJSON</span>
+            </button>
+            <button id="btn-screenshot-png" class="btn-action-info">
+                <i class="fa-solid fa-camera text-slate-300"></i>
+                <span>Tangkap Layar PNG</span>
+            </button>
+            <button id="btn-print-pdf" class="btn-action-info">
+                <i class="fa-solid fa-file-pdf text-emerald-400"></i>
+                <span>Cetak Peta ke PDF</span>
+            </button>
+        </div>
+
+        <!-- Tools Digitize & Import (Khusus Editor) -->
+        <div id="digitize-buttons-container" class="hidden bg-slate-900/90 border border-slate-700 p-3 rounded-xl shadow-xl backdrop-blur-md flex flex-col gap-1.5 text-xs">
+            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-1">Tools Digitalisasi</span>
+            <button id="btn-draw-new-parcel" class="bg-sky-600 hover:bg-sky-500 text-white p-1.5 rounded text-left flex items-center gap-2">
+                <i class="fa-solid fa-draw-polygon"></i> Digitasi Bidang 2D
+            </button>
+            <button id="btn-draw-new-road" class="bg-emerald-600 hover:bg-emerald-500 text-white p-1.5 rounded text-left flex items-center gap-2">
+                <i class="fa-solid fa-road"></i> Digitasi Garis Jalan
+            </button>
+            <button id="btn-draw-new-building" class="bg-indigo-600 hover:bg-indigo-500 text-white p-1.5 rounded text-left flex items-center gap-2">
+                <i class="fa-solid fa-building"></i> Digitasi Bangunan 3D
+            </button>
+            
+            <hr class="border-slate-700 my-1">
+            
+            <label class="text-[10px] text-amber-300 font-semibold">Import File (Auto-Zoom):</label>
+            <input type="file" id="shp-file-input" accept=".zip,.geojson,.json" class="hidden">
+            <button onclick="document.getElementById('shp-file-input').click()" class="bg-slate-800 hover:bg-slate-700 text-sky-400 p-1.5 rounded border border-slate-700 text-left flex items-center gap-2">
+                <i class="fa-solid fa-file-arrow-up"></i> Upload Persil / Data
+            </button>
+        </div>
+
+        <!-- Toolbar Navigasi Kamera / Rotasi (Sesuai Gambar) -->
+        <div class="bg-slate-900/90 border border-slate-700 p-1.5 rounded-xl shadow-xl backdrop-blur-md flex gap-1 justify-between items-center">
+            <button id="float-btn-2d" class="btn-float-inactive flex-1">2D</button>
+            <button id="float-btn-3d" class="btn-float-active flex-1">3D</button>
+            <button id="btn-rotate-ccw" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded border border-slate-700" title="Putar Kiri"><i class="fa-solid fa-rotate-left"></i></button>
+            <button id="btn-rotate-cw" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded border border-slate-700" title="Putar Kanan"><i class="fa-solid fa-rotate-right"></i></button>
+            <button id="btn-reset-north" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded border border-slate-700" title="Reset Uraian Utara"><i class="fa-solid fa-compass"></i></button>
+        </div>
+    </div>
+
+    <!-- Modal Login -->
+    <div id="login-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md p-6 rounded-2xl shadow-2xl relative">
+            <button id="close-login-modal" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h2 class="text-lg font-bold text-sky-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-user-shield"></i> Login Editor WebGIS</h2>
+            <p class="text-xs text-slate-400 mb-4">Masukkan akun terdaftar untuk mengaktifkan akses Mode Editor.</p>
+            
+            <form id="login-form" class="flex flex-col gap-3 text-xs">
+                <div>
+                    <label class="text-slate-300 block mb-1 font-semibold">Email</label>
+                    <input type="email" id="login-email" required class="w-full bg-slate-800 border border-slate-700 rounded p-2.5 text-slate-200 focus:outline-none focus:border-sky-500">
+                </div>
+                <div>
+                    <label class="text-slate-300 block mb-1 font-semibold">Password</label>
+                    <input type="password" id="login-password" required class="w-full bg-slate-800 border border-slate-700 rounded p-2.5 text-slate-200 focus:outline-none focus:border-sky-500">
+                </div>
+                <div id="login-error-msg" class="hidden text-rose-400 text-[11px] font-semibold"></div>
+                <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded mt-2">Masuk Akun</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FIREBASE & MAP SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyYOUR_API_KEY_HERE",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:abcdef123456"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let cadastreData = { type: "FeatureCollection", features: [] };
+        let userDrawn3DData = { type: "FeatureCollection", features: [] };
+        let roadLineData = { type: "FeatureCollection", features: [] };
+
+        // Inisialisasi MapLibre (preserveDrawingBuffer diaktifkan untuk fitur Tangkap Layar)
+        const map = new maplibregl.Map({
+            container: 'map',
+            preserveDrawingBuffer: true,
+            style: {
+                version: 8,
+                sources: { 
+                    'esri-satellite': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 },
+                    'carto-dark': { type: 'raster', tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], tileSize: 256 },
+                    'osm': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256 }
+                },
+                layers: [{ id: 'base-layer', type: 'raster', source: 'esri-satellite' }]
+            },
+            center: [106.827153, -6.175392], zoom: 16, pitch: 45, antialias: true
+        });
+
+        const Draw = new MapboxDraw({ displayControlsDefault: false });
+        map.addControl(Draw);
+
+        map.on('load', async () => {
+            initMapLayers();
+            await loadFirestoreData();
+            setupAuthListeners();
+            setupExportAndPrintTools();
+            setupCameraControls();
+            setupImportWithAutoZoom();
+        });
+
+        function initMapLayers() {
+            map.addSource('cadastre-source', { type: 'geojson', data: cadastreData });
+            map.addLayer({ id: 'cadastre-fill', type: 'fill', source: 'cadastre-source', paint: { 'fill-color': '#0ea5e9', 'fill-opacity': 0.5 } });
+            map.addLayer({ id: 'cadastre-line', type: 'line', source: 'cadastre-source', paint: { 'line-color': '#38bdf8', 'line-width': 2 } });
+
+            map.addSource('user-3d-source', { type: 'geojson', data: userDrawn3DData });
+            map.addLayer({
+                id: 'user-3d-layer', type: 'fill-extrusion', source: 'user-3d-source',
+                paint: { 'fill-extrusion-color': '#6366f1', 'fill-extrusion-height': ['get', 'height'], 'fill-extrusion-opacity': 0.85 }
+            });
+
+            map.addSource('road-line-source', { type: 'geojson', data: roadLineData });
+            map.addLayer({ id: 'road-line-layer', type: 'line', source: 'road-line-source', paint: { 'line-color': '#10b981', 'line-width': 4 } });
+        }
+
+        async function loadFirestoreData() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "features"));
+                cadastreData.features = [];
+                userDrawn3DData.features = [];
+                roadLineData.features = [];
+
+                querySnapshot.forEach((doc) => {
+                    let feat = doc.data();
+                    if (feat.properties.type === 'parcel') cadastreData.features.push(feat);
+                    else if (feat.properties.type === 'building') userDrawn3DData.features.push(feat);
+                    else if (feat.properties.type === 'road') roadLineData.features.push(feat);
+                });
+
+                refreshAllLayers();
+            } catch (err) { console.error("Error loading Firestore:", err); }
+        }
+
+        function refreshAllLayers() {
+            if (map.getSource('cadastre-source')) map.getSource('cadastre-source').setData(cadastreData);
+            if (map.getSource('user-3d-source')) map.getSource('user-3d-source').setData(userDrawn3DData);
+            if (map.getSource('road-line-source')) map.getSource('road-line-source').setData(roadLineData);
+            document.getElementById('stat-total-parcels').innerText = cadastreData.features.length;
+        }
+
+        /* 1. FITUR IMPORT DATA + AUTO-ZOOM SANGAT PRESISI */
+        function setupImportWithAutoZoom() {
+            const input = document.getElementById('shp-file-input');
+            input.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    let geojson;
+                    if (file.name.endsWith('.zip')) {
+                        const buffer = await file.arrayBuffer();
+                        geojson = await shp(buffer);
+                    } else {
+                        const text = await file.text();
+                        geojson = JSON.parse(text);
+                    }
+
+                    const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
+                    
+                    // Memasukkan fitur ke layer 2D Persil
+                    features.forEach(f => {
+                        if (!f.properties) f.properties = {};
+                        f.properties.id = 'imported-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+                        f.properties.type = 'parcel';
+                        cadastreData.features.push(f);
+                        setDoc(doc(db, "features", f.properties.id), f);
+                    });
+
+                    refreshAllLayers();
+
+                    // FITUR AUTO-ZOOM LOKASI
+                    const bbox = turf.bbox(geojson);
+                    map.fitBounds(bbox, { padding: 60, maxZoom: 19, duration: 1500 });
+
+                    alert(`Berhasil meng-import ${features.length} objek spasial! Peta diarahkan ke lokasi data.`);
+                } catch (err) {
+                    alert("Gagal membaca file. Pastikan format .zip (Shapefile) atau .geojson valid.");
+                    console.error(err);
+                }
+            });
+        }
+
+        /* 2. FITUR EKSPOR GEOJSON, TANGKAP LAYAR PNG, & CETAK PDF */
+        function setupExportAndPrintTools() {
+            // Ekspor GeoJSON
+            document.getElementById('btn-export-geojson').addEventListener('click', () => {
+                const combined = {
+                    type: "FeatureCollection",
+                    features: [...cadastreData.features, ...userDrawn3DData.features, ...roadLineData.features]
+                };
+                const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(combined, null, 2));
+                const a = document.createElement('a');
+                a.setAttribute("href", str);
+                a.setAttribute("download", `WebGIS_Export_${Date.now()}.geojson`);
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            });
+
+            // Tangkap Layar PNG
+            document.getElementById('btn-screenshot-png').addEventListener('click', () => {
+                map.once('render', () => {
+                    const imgURI = map.getCanvas().toDataURL("image/png");
+                    const a = document.createElement('a');
+                    a.setAttribute("href", imgURI);
+                    a.setAttribute("download", `WebGIS_Map_${Date.now()}.png`);
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                });
+                map.triggerRepaint();
+            });
+
+            // Cetak Peta ke PDF
+            document.getElementById('btn-print-pdf').addEventListener('click', () => {
+                map.once('render', () => {
+                    const imgData = map.getCanvas().toDataURL("image/png");
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('landscape', 'mm', 'a4');
+                    
+                    pdf.setFontSize(16);
+                    pdf.text("PETA CADASTRA 2D & 3D WEBGIS", 14, 15);
+                    pdf.setFontSize(10);
+                    pdf.text(`Tanggal Cetak: ${new Date().toLocaleString('id-ID')}`, 14, 21);
+                    
+                    pdf.addImage(imgData, 'PNG', 14, 25, 269, 165);
+                    pdf.save(`Peta_Cadastral_${Date.now()}.pdf`);
+                });
+                map.triggerRepaint();
+            });
+
+            // Switcher Basemap
+            document.getElementById('basemap-select').addEventListener('change', (e) => {
+                const val = e.target.value;
+                map.setStyle({
+                    version: 8,
+                    sources: {
+                        'esri-satellite': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 },
+                        'carto-dark': { type: 'raster', tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], tileSize: 256 },
+                        'osm': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256 }
+                    },
+                    layers: [{ id: 'base-layer', type: 'raster', source: val === 'esri_sat' ? 'esri-satellite' : val === 'carto_dark' ? 'carto-dark' : 'osm' }]
+                });
+                map.once('style.load', () => initMapLayers());
+            });
+        }
+
+        /* 3. KONTROL KAMERA / ROTASI (Sesuai Tombol Gambar) */
+        function setupCameraControls() {
+            const btn2D = document.getElementById('float-btn-2d');
+            const btn3D = document.getElementById('float-btn-3d');
+
+            btn2D.addEventListener('click', () => {
+                map.easeTo({ pitch: 0 });
+                btn2D.className = 'btn-float-active flex-1';
+                btn3D.className = 'btn-float-inactive flex-1';
+            });
+
+            btn3D.addEventListener('click', () => {
+                map.easeTo({ pitch: 55 });
+                btn3D.className = 'btn-float-active flex-1';
+                btn2D.className = 'btn-float-inactive flex-1';
+            });
+
+            document.getElementById('btn-rotate-ccw').addEventListener('click', () => {
+                map.easeTo({ bearing: map.getBearing() - 45, duration: 400 });
+            });
+
+            document.getElementById('btn-rotate-cw').addEventListener('click', () => {
+                map.easeTo({ bearing: map.getBearing() + 45, duration: 400 });
+            });
+
+            document.getElementById('btn-reset-north').addEventListener('click', () => {
+                map.easeTo({ bearing: 0, pitch: 0, duration: 500 });
+            });
+        }
+
+        /* FIREBASE AUTHENTICATION LISTENERS */
+        function setupAuthListeners() {
+            const authBtn = document.getElementById('auth-action-btn');
+            const loginModal = document.getElementById('login-modal');
+
+            authBtn.addEventListener('click', () => {
+                if (currentUser) signOut(auth);
+                else loginModal.classList.remove('hidden');
+            });
+
+            document.getElementById('close-login-modal').addEventListener('click', () => loginModal.classList.add('hidden'));
+
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
+                    loginModal.classList.add('hidden');
+                } catch (err) {
+                    const errEl = document.getElementById('login-error-msg');
+                    errEl.innerText = "Email / Password salah!";
+                    errEl.classList.remove('hidden');
+                }
+            });
+
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                const editorBtn = document.getElementById('mode-btn-editor');
+                const toolsCont = document.getElementById('digitize-buttons-container');
+
+                if (user) {
+                    authBtn.innerHTML = `<i class="fa-solid fa-right-from-bracket"></i> Logout`;
+                    authBtn.className = "text-xs bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1 rounded font-semibold transition";
+                    editorBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    editorBtn.onclick = () => {
+                        toolsCont.classList.remove('hidden');
+                        document.getElementById('current-mode-badge').innerText = "Mode Editor (Admin)";
+                        document.getElementById('mode-btn-info').className = "btn-mode-inactive";
+                        editorBtn.className = "btn-mode-active";
+                    };
+                } else {
+                    authBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Login`;
+                    authBtn.className = "text-xs bg-sky-600 hover:bg-sky-500 text-white px-2.5 py-1 rounded font-semibold transition";
+                    editorBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    editorBtn.onclick = null;
+                    toolsCont.classList.add('hidden');
+                    document.getElementById('current-mode-badge').innerText = "Mode Info (Publik)";
+                    document.getElementById('mode-btn-info').className = "btn-mode-active";
+                    editorBtn.className = "btn-mode-inactive opacity-50 cursor-not-allowed";
+                }
+            });
+
+            document.getElementById('mode-btn-info').addEventListener('click', () => {
+                document.getElementById('digitize-buttons-container').classList.add('hidden');
+                document.getElementById('current-mode-badge').innerText = "Mode Info (Publik)";
+                document.getElementById('mode-btn-info').className = "btn-mode-active";
+                document.getElementById('mode-btn-editor').className = "btn-mode-inactive " + (currentUser ? "" : "opacity-50 cursor-not-allowed");
+            });
+        }
+    </script>
+</body>
+</html>

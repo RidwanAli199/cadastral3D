@@ -229,9 +229,11 @@
 
             <span style="font-size: 10px; font-weight: bold; color: #38bdf8; text-transform: uppercase; display: block; margin-top: 10px; margin-bottom: 8px;">Warna Bangunan 3D (Fungsi)</span>
             <div class="legend-item"><div class="legend-color" style="background: #38bdf8; border: 1px solid #0284c7;"></div> Rumah / Permukiman</div>
-            <div class="legend-item"><div class="legend-color" style="background: #f59e0b; border: 1px solid #d97706;"></div> Komersial / Usaha</div>
-            <div class="legend-item"><div class="legend-color" style="background: #a855f7; border: 1px solid #7e22ce;"></div> Industri / Pabrik</div>
-            <div class="legend-item"><div class="legend-color" style="background: #10b981; border: 1px solid #047857;"></div> Fasilitas Umum</div>
+            <div class="legend-item"><div class="legend-color" style="background: #f59e0b; border: 1px solid #d97706;"></div> Toko / Komersial</div>
+            <div class="legend-item"><div class="legend-color" style="background: #818cf8; border: 1px solid #4f46e5;"></div> Sekolah / Pendidikan</div>
+            <div class="legend-item"><div class="legend-color" style="background: #f43f5e; border: 1px solid #be123c;"></div> Puskesmas / Kesehatan</div>
+            <div class="legend-item"><div class="legend-color" style="background: #10b981; border: 1px solid #047857;"></div> Kantor Pemerintahan</div>
+            <div class="legend-item"><div class="legend-color" style="background: #94a3b8; border: 1px solid #64748b;"></div> Infrastruktur Umum</div>
         </div>
     </div>
 
@@ -431,9 +433,11 @@
             <label style="font-size: 10px; color: #38bdf8; font-weight: 600;">FUNGSI BANGUNAN (WARNA 3D)</label>
             <select id="attr-bgn-fungsi" class="select-input">
                 <option value="Rumah / Permukiman">Rumah / Permukiman (Biru Sky)</option>
-                <option value="Komersial / Usaha">Komersial / Usaha (Kuning Amber)</option>
-                <option value="Industri / Pabrik">Industri / Pabrik (Ungu Purple)</option>
-                <option value="Fasilitas Umum">Fasilitas Umum (Hijau Emerald)</option>
+                <option value="Toko / Komersial">Toko / Komersial (Kuning Amber)</option>
+                <option value="Sekolah / Pendidikan">Sekolah / Pendidikan (Indigo)</option>
+                <option value="Puskesmas / Kesehatan">Puskesmas / Kesehatan (Merah Rose)</option>
+                <option value="Kantor Pemerintahan">Kantor Pemerintahan (Hijau Emerald)</option>
+                <option value="Infrastruktur Umum">Infrastruktur Umum (Abu Slate)</option>
             </select>
 
             <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; padding: 10px; border-radius: 8px; margin-top: 4px; margin-bottom: 10px;">
@@ -714,7 +718,7 @@
                 },
                 {
                     type: "Feature",
-                    properties: { id: "bgn-3d-102", category: "bangunan", nib: "18.71.02.1009.0002", fungsi: "Komersial / Usaha", jumlah_lantai: 4, height: 12, base_height: 0 },
+                    properties: { id: "bgn-3d-102", category: "bangunan", nib: "18.71.02.1009.0002", fungsi: "Toko / Komersial", jumlah_lantai: 4, height: 12, base_height: 0 },
                     geometry: { type: "Polygon", coordinates: [[[105.290420, -5.369820], [105.290660, -5.369760], [105.290690, -5.369930], [105.290450, -5.369980], [105.290420, -5.369820]]] }
                 },
                 {
@@ -737,9 +741,11 @@
             const ZONA_MIN_RTH = { 'Komersial': 20, 'Permukiman': 30, 'Industri': 15, 'Fasilitas Umum': 25 };
             const NJOP_RATE_PER_M2 = {
                 'Rumah / Permukiman': 3500000,
-                'Komersial / Usaha': 5000000,
-                'Industri / Pabrik': 4000000,
-                'Fasilitas Umum': 3000000
+                'Toko / Komersial': 5000000,
+                'Sekolah / Pendidikan': 3000000,
+                'Puskesmas / Kesehatan': 3200000,
+                'Kantor Pemerintahan': 3000000,
+                'Infrastruktur Umum': 2500000
             };
 
             // Estimasi tarif denda administratif (simulasi, bukan angka legal resmi)
@@ -749,9 +755,9 @@
 
             const ALLOWED_FUNGSI_BY_ZONA = {
                 'Permukiman': ['Rumah / Permukiman'],
-                'Komersial': ['Komersial / Usaha'],
-                'Industri': ['Industri / Pabrik'],
-                'Fasilitas Umum': ['Fasilitas Umum']
+                'Komersial': ['Toko / Komersial'],
+                'Industri': ['Infrastruktur Umum'],
+                'Fasilitas Umum': ['Sekolah / Pendidikan', 'Puskesmas / Kesehatan', 'Kantor Pemerintahan', 'Infrastruktur Umum']
             };
 
             let violationModalTarget = null;
@@ -1545,9 +1551,11 @@
                         'fill-extrusion-color': [
                             'match', ['get', 'fungsi'],
                             'Rumah / Permukiman', '#38bdf8',
-                            'Komersial / Usaha', '#f59e0b',
-                            'Industri / Pabrik', '#a855f7',
-                            'Fasilitas Umum', '#10b981',
+                            'Toko / Komersial', '#f59e0b',
+                            'Sekolah / Pendidikan', '#818cf8',
+                            'Puskesmas / Kesehatan', '#f43f5e',
+                            'Kantor Pemerintahan', '#10b981',
+                            'Infrastruktur Umum', '#94a3b8',
                             '#38bdf8'
                         ],
                         'fill-extrusion-height': ['coalesce', ['get', 'height'], 6],
@@ -2080,7 +2088,6 @@
 
             // Deteksi kategori peruntukan/fungsi lahan dari teks bebas (Bahasa Indonesia & Inggris).
             const ZONA_LABELS = { permukiman: 'Permukiman', komersial: 'Komersial', industri: 'Industri', fasum: 'Fasilitas Umum' };
-            const FUNGSI_BGN_LABELS = { permukiman: 'Rumah / Permukiman', komersial: 'Komersial / Usaha', industri: 'Industri / Pabrik', fasum: 'Fasilitas Umum' };
             function detectLandUseCategory(raw) {
                 if (raw === undefined || raw === null) return null;
                 const s = String(raw).trim().toLowerCase();
@@ -2101,6 +2108,38 @@
                     commercial: 'komersial', retail: 'komersial', office: 'komersial', shop: 'komersial', supermarket: 'komersial', hotel: 'komersial',
                     industrial: 'industri', warehouse: 'industri', factory: 'industri',
                     school: 'fasum', hospital: 'fasum', government: 'fasum', civic: 'fasum', public: 'fasum', church: 'fasum', mosque: 'fasum', university: 'fasum', college: 'fasum'
+                };
+                return map[s] || null;
+            }
+
+            // Deteksi FUNGSI BANGUNAN (6 kategori tampilan/warna 3D) dari teks bebas pada data
+            // sumber import. Lebih rinci dari detectLandUseCategory (yang dipakai untuk zona
+            // bidang 2D), supaya "Sekolah", "Puskesmas", "Kantor Pemerintahan" dan "Infrastruktur
+            // Umum" tidak lagi digabung jadi satu label "Fasilitas Umum" seperti sebelumnya.
+            function detectFungsiBangunanKategori(raw) {
+                if (!raw) return null;
+                const s = String(raw).trim().toLowerCase();
+                if (!s) return null;
+                if (/(sekolah|pendidikan|kampus|universitas|university|college|school)/.test(s)) return 'Sekolah / Pendidikan';
+                if (/(puskesmas|kesehatan|klinik|rumah\s*sakit|hospital|clinic|health)/.test(s)) return 'Puskesmas / Kesehatan';
+                if (/(kantor\s*pemerintah|pemerintah|dinas|kelurahan|kecamatan|kantor\s*desa|balai\s*kota|government|kantor\s*polisi|kantor\s*camat)/.test(s)) return 'Kantor Pemerintahan';
+                if (/(infrastruktur|utilitas|terminal|stasiun|pelabuhan|bandara|infrastructure|utility|ibadah|masjid|gereja|pura|vihara|fasum|fasilitas\s*umum|civic|public)/.test(s)) return 'Infrastruktur Umum';
+                if (/(komersial|usaha|dagang|perdagangan|toko|ruko|commercial|retail|bisnis|office|kantor\s*sewa|shop|supermarket|hotel)/.test(s)) return 'Toko / Komersial';
+                if (/(rumah|hunian|permukiman|residential|perumahan|house|apartemen)/.test(s)) return 'Rumah / Permukiman';
+                return null;
+            }
+            // Fallback khusus untuk tag OSM `building=` (versi 6 kategori fungsi bangunan).
+            function detectBuildingTagFungsi(raw) {
+                if (!raw) return null;
+                const s = String(raw).trim().toLowerCase();
+                const map = {
+                    house: 'Rumah / Permukiman', residential: 'Rumah / Permukiman', apartments: 'Rumah / Permukiman', detached: 'Rumah / Permukiman',
+                    terrace: 'Rumah / Permukiman', semidetached_house: 'Rumah / Permukiman', bungalow: 'Rumah / Permukiman', dormitory: 'Rumah / Permukiman',
+                    commercial: 'Toko / Komersial', retail: 'Toko / Komersial', office: 'Toko / Komersial', shop: 'Toko / Komersial', supermarket: 'Toko / Komersial', hotel: 'Toko / Komersial',
+                    school: 'Sekolah / Pendidikan', university: 'Sekolah / Pendidikan', college: 'Sekolah / Pendidikan', kindergarten: 'Sekolah / Pendidikan',
+                    hospital: 'Puskesmas / Kesehatan', clinic: 'Puskesmas / Kesehatan',
+                    government: 'Kantor Pemerintahan', civic: 'Kantor Pemerintahan',
+                    public: 'Infrastruktur Umum', industrial: 'Infrastruktur Umum', warehouse: 'Infrastruktur Umum', factory: 'Infrastruktur Umum', church: 'Infrastruktur Umum', mosque: 'Infrastruktur Umum'
                 };
                 return map[s] || null;
             }
@@ -2193,12 +2232,12 @@
                     }
 
                     const fungsiRaw = ciValue(rawProps, ['fungsi', 'land_use', 'landuse', 'jenis_bangunan', 'kegunaan']);
-                    let fungsiCat = detectLandUseCategory(fungsiRaw);
-                    if (!fungsiCat) {
+                    let fungsiLabel = detectFungsiBangunanKategori(fungsiRaw);
+                    if (!fungsiLabel) {
                         const buildingTagRaw = ciValue(rawProps, ['building']);
-                        fungsiCat = detectBuildingTagCategory(buildingTagRaw);
+                        fungsiLabel = detectBuildingTagFungsi(buildingTagRaw);
                     }
-                    if (fungsiCat) out.fungsi = FUNGSI_BGN_LABELS[fungsiCat];
+                    if (fungsiLabel) out.fungsi = fungsiLabel;
 
                     // Cadangan luas: dipakai di panel atribut HANYA jika luas dari geometri asli
                     // (footprint bangunan) atau pencocokan bidang via NIB tidak tersedia. Ini meniru

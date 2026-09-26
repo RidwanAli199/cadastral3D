@@ -684,50 +684,6 @@
         };
 
         (function() {
-            const presetGeoJSONData = [
-                {
-                    type: "Feature",
-                    properties: { id: "aoi-korpri-raya", category: "aoi", NAMOBJ: "Korpri Raya", WADMKC: "Sukarame" },
-                    geometry: {
-                        type: "Polygon",
-                        coordinates: [[
-                            [105.305952, -5.358661], [105.305706, -5.358790], [105.305487, -5.358942],
-                            [105.305259, -5.359218], [105.304416, -5.360544], [105.303675, -5.361796],
-                            [105.304240, -5.362272], [105.305053, -5.362763], [105.304906, -5.363899],
-                            [105.304442, -5.365249], [105.304251, -5.365699], [105.303823, -5.368176],
-                            [105.303336, -5.369030], [105.298642, -5.364528], [105.300646, -5.364473],
-                            [105.301724, -5.361490], [105.303577, -5.360038], [105.306040, -5.358309],
-                            [105.305952, -5.358661]
-                        ]]
-                    }
-                },
-                {
-                    type: "Feature",
-                    properties: { id: "bdg-101", category: "bidang", nib: "18.71.02.1009.0001", pemilik: "Bpk. Ahmad", zona: "Permukiman" },
-                    geometry: { type: "Polygon", coordinates: [[[105.290100, -5.369800], [105.290400, -5.369700], [105.290450, -5.369950], [105.290150, -5.370000], [105.290100, -5.369800]]] }
-                },
-                {
-                    type: "Feature",
-                    properties: { id: "bdg-102", category: "bidang", nib: "18.71.02.1009.0002", pemilik: "PT. Sukarame Jaya", zona: "Komersial" },
-                    geometry: { type: "Polygon", coordinates: [[[105.290410, -5.369830], [105.290680, -5.369750], [105.290720, -5.369950], [105.290450, -5.369990], [105.290410, -5.369830]]] }
-                },
-                {
-                    type: "Feature",
-                    properties: { id: "bgn-3d-101", category: "bangunan", nib: "18.71.02.1009.0001", fungsi: "Rumah / Permukiman", jumlah_lantai: 2, height: 6, base_height: 0 },
-                    geometry: { type: "Polygon", coordinates: [[[105.290140, -5.369830], [105.290280, -5.369780], [105.290320, -5.369900], [105.290180, -5.369940], [105.290140, -5.369830]]] }
-                },
-                {
-                    type: "Feature",
-                    properties: { id: "bgn-3d-102", category: "bangunan", nib: "18.71.02.1009.0002", fungsi: "Toko / Komersial", jumlah_lantai: 4, height: 12, base_height: 0 },
-                    geometry: { type: "Polygon", coordinates: [[[105.290420, -5.369820], [105.290660, -5.369760], [105.290690, -5.369930], [105.290450, -5.369980], [105.290420, -5.369820]]] }
-                },
-                {
-                    type: "Feature",
-                    properties: { id: "jalan-101", category: "jalan", nama: "Jl. Sukarame Utama", fungsi: "Jalan Arteri / Utama", lebar: 10, perkerasan: "Aspal Hotmix" },
-                    geometry: { type: "LineString", coordinates: [[105.28950, -5.37060], [105.29080, -5.36950], [105.29200, -5.36870]] }
-                }
-            ];
-
             let currentUser = null;
             let selectedFeature = null;
             let isBulkDeleteMode = false;
@@ -762,7 +718,10 @@
 
             let violationModalTarget = null;
 
-            let cadastreData = { type: "FeatureCollection", features: JSON.parse(JSON.stringify(presetGeoJSONData)) };
+            // Kosong di awal: tidak ada lagi data dummy/contoh (bidang, bangunan, jalan, aoi).
+            // Peta hanya akan terisi dari data yang benar-benar tersimpan di Firestore,
+            // yang dimuat secara realtime oleh setupFirestoreSync() -> onSnapshot.
+            let cadastreData = { type: "FeatureCollection", features: [] };
 
             const basemapSources = {
                 'esri_sat': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 },

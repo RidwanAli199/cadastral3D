@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGIS Cadastral 2D & 3D</title>
+
+    <!-- MapLibre GL CSS & JS -->
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+
+    <!-- Mapbox Draw CSS & JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.js"></script>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.2/mapbox-gl-draw.css" type="text/css" />
+
+    <!-- Turf.js & shpjs -->
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- STYLE PURE CSS (TANPA TAILWIND) -->
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background-color: #0f172a; color: #f8fafc; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; height: 100%; }
+
+        /* Panel Kiri & Kanan */
+        .panel-container-left { position: absolute; top: 16px; left: 16px; z-index: 10; display: flex; flex-direction: column; gap: 8px; width: 320px; }
+        .panel-container-right { position: absolute; top: 16px; right: 16px; z-index: 10; display: flex; flex-direction: column; gap: 8px; width: 220px; }
+        
+        .card-panel { background: rgba(15, 23, 42, 0.9); border: 1px solid #334155; padding: 12px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); backdrop-filter: blur(8px); }
+        
+        .header-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .header-title h1 { font-size: 14px; font-weight: bold; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+        .subtitle { font-size: 11px; color: #94a3b8; }
+
+        /* Buttons & Controls */
+        .btn { border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-login { background-color: #0284c7; color: white; }
+        .btn-login:hover { background-color: #0369a1; }
+        .btn-logout { background-color: #e11d48; color: white; }
+        .btn-logout:hover { background-color: #be123c; }
+
+        .btn-mode-active { background-color: #0284c7; color: white; }
+        .btn-mode-inactive { background-color: #334155; color: #94a3b8; }
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .badge-mode { font-size: 10px; background: #1e293b; color: #38bdf8; padding: 4px 8px; border-radius: 4px; border: 1px solid #334155; font-family: monospace; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: center; font-size: 12px; }
+        .stat-box { background: rgba(30, 41, 59, 0.8); padding: 8px; border-radius: 8px; border: 1px solid #334155; }
+        .stat-value { font-size: 18px; font-weight: bold; color: #38bdf8; margin-top: 2px; }
+
+        /* Action Buttons Info Panel */
+        .btn-action-info { width: 100%; background-color: #1e293b; border: 1px solid #334155; color: #38bdf8; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: left; display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 6px; }
+        .btn-action-info:hover { background-color: #334155; border-color: #0284c7; }
+
+        .select-input { width: 100%; background: #1e293b; color: #f8fafc; border: 1px solid #334155; padding: 6px; border-radius: 6px; font-size: 12px; outline: none; }
+
+        /* Camera Nav Control */
+        .camera-nav-bar { display: flex; gap: 4px; justify-content: space-between; }
+        .btn-cam { flex: 1; background: #1e293b; border: 1px solid #334155; color: #f8fafc; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-cam:hover { background: #334155; }
+        .btn-cam-active { background: #0284c7; color: white; border-color: #0284c7; }
+
+        /* Modal Login */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.8); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .modal-box { background: #0f172a; border: 1px solid #334155; width: 100%; max-width: 380px; padding: 24px; border-radius: 16px; position: relative; }
+        .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; }
+        .form-group { margin-bottom: 12px; text-align: left; }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 4px; }
+        .form-input { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 8px; border-radius: 6px; color: white; font-size: 12px; outline: none; }
+        .form-input:focus { border-color: #0284c7; }
+        .error-msg { color: #f43f5e; font-size: 11px; margin-top: 4px; display: none; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <!-- UI Panel Kiri -->
+    <div class="panel-container-left">
+        <div class="card-panel">
+            <div class="header-title">
+                <h1><i class="fa-solid fa-layer-group"></i> Cadastral 2D & 3D</h1>
+                <button id="auth-action-btn" class="btn btn-login"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+            </div>
+            <p class="subtitle">Sistem Informasi Pertanahan & Monitoring RTH</p>
+            
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 12px;">
+                <button id="mode-btn-info" class="btn btn-mode-active">Mode Info</button>
+                <button id="mode-btn-editor" class="btn btn-mode-inactive btn-disabled" title="Login untuk membuka Mode Editor">
+                    Editor <i class="fa-solid fa-lock" style="font-size:10px;"></i>
+                </button>
+            </div>
+            <div style="margin-top: 8px;">
+                <span id="current-mode-badge" class="badge-mode">Mode Info (Publik)</span>
+            </div>
+        </div>
+
+        <div class="card-panel stats-grid">
+            <div class="stat-box">
+                <div style="color: #94a3b8; font-size: 10px;">Total Persil</div>
+                <div id="stat-total-parcels" class="stat-value">0</div>
+            </div>
+            <div class="stat-box">
+                <div style="color: #94a3b8; font-size: 10px;">Pelanggaran RTH</div>
+                <div id="stat-violations" class="stat-value" style="color: #f43f5e;">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI Panel Kanan -->
+    <div class="panel-container-right">
+        <div class="card-panel">
+            <label style="font-size: 11px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px;">Pilihan Basemap</label>
+            <select id="basemap-select" class="select-input">
+                <option value="esri_sat">Esri Satellite</option>
+                <option value="carto_dark">CARTO Dark Matter</option>
+                <option value="osm">OpenStreetMap</option>
+            </select>
+        </div>
+
+        <div class="card-panel">
+            <button id="btn-export-geojson" class="btn-action-info">
+                <i class="fa-solid fa-file-arrow-down"></i> Ekspor GeoJSON
+            </button>
+            <button id="btn-screenshot-png" class="btn-action-info">
+                <i class="fa-solid fa-camera"></i> Tangkap Layar PNG
+            </button>
+            <button id="btn-print-pdf" class="btn-action-info">
+                <i class="fa-solid fa-file-pdf" style="color: #10b981;"></i> Cetak Peta ke PDF
+            </button>
+        </div>
+
+        <div id="digitize-buttons-container" class="card-panel hidden">
+            <span style="font-size: 10px; font-weight: bold; color: #f59e0b; text-transform: uppercase; display: block; margin-bottom: 8px;">Tools Editor</span>
+            <input type="file" id="shp-file-input" accept=".zip,.geojson,.json" class="hidden">
+            <button onclick="document.getElementById('shp-file-input').click()" class="btn-action-info" style="color: #38bdf8;">
+                <i class="fa-solid fa-file-arrow-up"></i> Upload Persil (Auto-Zoom)
+            </button>
+        </div>
+
+        <div class="card-panel camera-nav-bar">
+            <button id="float-btn-2d" class="btn-cam">2D</button>
+            <button id="float-btn-3d" class="btn-cam btn-cam-active">3D</button>
+            <button id="btn-rotate-ccw" class="btn-cam" title="Putar Kiri"><i class="fa-solid fa-rotate-left"></i></button>
+            <button id="btn-rotate-cw" class="btn-cam" title="Putar Kanan"><i class="fa-solid fa-rotate-right"></i></button>
+            <button id="btn-reset-north" class="btn-cam" title="Reset Uraian Utara"><i class="fa-solid fa-compass"></i></button>
+        </div>
+    </div>
+
+    <!-- Modal Login -->
+    <div id="login-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <button id="close-login-modal" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            <h2 style="font-size: 16px; font-weight: bold; color: #38bdf8; margin-bottom: 4px;"><i class="fa-solid fa-user-shield"></i> Login Editor</h2>
+            <p class="subtitle" style="margin-bottom: 16px;">Masukkan akun terdaftar untuk membuka Mode Editor.</p>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="login-email" required class="form-input" placeholder="admin@cadastral.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" required class="form-input" placeholder="******">
+                </div>
+                <div id="login-error-msg" class="error-msg">Email / Password salah!</div>
+                <button type="submit" class="btn btn-login" style="width: 100%; margin-top: 8px; padding: 10px;">Masuk Akun</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FIREBASE & SCRIPT UTAMA -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Ganti dengan Config Asli dari Firebase Console Anda
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTeUtOHFIsfcOl6L05Z1asfxk8ffxC38c", 
+            authDomain: "cadastral3d-f7f0c.firebaseapp.com",
+            projectId: "cadastral3d-f7f0c",
+            storageBucket: "cadastral3d-f7f0c.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let cadastreData = { type: "FeatureCollection", features: [] };
+
+        const map = new maplibregl.Map({
+            container: 'map',
+            preserveDrawingBuffer: true,
+            style: {
+                version: 8,
+                sources: { 
+                    'esri-satellite': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 },
+                    'carto-dark': { type: 'raster', tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], tileSize: 256 },
+                    'osm': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256 }
+                },
+                layers: [{ id: 'base-layer', type: 'raster', source: 'esri-satellite' }]
+            },
+            center: [106.827153, -6.175392], zoom: 16, pitch: 45, antialias: true
+        });
+
+        map.on('load', async () => {
+            initMapLayers();
+            await loadFirestoreData();
+            setupAuthListeners();
+            setupExportAndPrintTools();
+            setupCameraControls();
+            setupImportWithAutoZoom();
+        });
+
+        function initMapLayers() {
+            map.addSource('cadastre-source', { type: 'geojson', data: cadastreData });
+            map.addLayer({ id: 'cadastre-fill', type: 'fill', source: 'cadastre-source', paint: { 'fill-color': '#0ea5e9', 'fill-opacity': 0.5 } });
+            map.addLayer({ id: 'cadastre-line', type: 'line', source: 'cadastre-source', paint: { 'line-color': '#38bdf8', 'line-width': 2 } });
+        }
+
+        async function loadFirestoreData() {
+            try {
+                // Membaca koleksi "parcels" sesuai gambar konsol Firebase Anda
+                const querySnapshot = await getDocs(collection(db, "parcels"));
+                cadastreData.features = [];
+
+                querySnapshot.forEach((doc) => {
+                    let feat = doc.data();
+                    if (feat.type === "Feature") {
+                        cadastreData.features.push(feat);
+                    }
+                });
+
+                refreshAllLayers();
+            } catch (err) { console.error("Error loading Firestore:", err); }
+        }
+
+        function refreshAllLayers() {
+            if (map.getSource('cadastre-source')) map.getSource('cadastre-source').setData(cadastreData);
+            document.getElementById('stat-total-parcels').innerText = cadastreData.features.length;
+        }
+
+        function setupAuthListeners() {
+            const authBtn = document.getElementById('auth-action-btn');
+            const loginModal = document.getElementById('login-modal');
+
+            authBtn.addEventListener('click', () => {
+                if (currentUser) signOut(auth);
+                else loginModal.classList.remove('hidden');
+            });
+
+            document.getElementById('close-login-modal').addEventListener('click', () => loginModal.classList.add('hidden'));
+
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    await signInWithEmailAndPassword(auth, document.getElementById('login-email').value, document.getElementById('login-password').value);
+                    loginModal.classList.add('hidden');
+                } catch (err) {
+                    const errEl = document.getElementById('login-error-msg');
+                    errEl.style.display = "block";
+                }
+            });
+
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                const editorBtn = document.getElementById('mode-btn-editor');
+                const toolsCont = document.getElementById('digitize-buttons-container');
+
+                if (user) {
+                    authBtn.innerHTML = `<i class="fa-solid fa-right-from-bracket"></i> Logout`;
+                    authBtn.className = "btn btn-logout";
+                    editorBtn.classList.remove('btn-disabled');
+                    editorBtn.onclick = () => {
+                        toolsCont.classList.remove('hidden');
+                        document.getElementById('current-mode-badge').innerText = "Mode Editor (Admin)";
+                        document.getElementById('mode-btn-info').className = "btn btn-mode-inactive";
+                        editorBtn.className = "btn btn-mode-active";
+                    };
+                } else {
+                    authBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Login`;
+                    authBtn.className = "btn btn-login";
+                    editorBtn.classList.add('btn-disabled');
+                    editorBtn.onclick = null;
+                    toolsCont.classList.add('hidden');
+                    document.getElementById('current-mode-badge').innerText = "Mode Info (Publik)";
+                    document.getElementById('mode-btn-info').className = "btn btn-mode-active";
+                    editorBtn.className = "btn btn-mode-inactive btn-disabled";
+                }
+            });
+        }
+
+        function setupImportWithAutoZoom() {
+            const input = document.getElementById('shp-file-input');
+            input.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    let geojson;
+                    if (file.name.endsWith('.zip')) {
+                        const buffer = await file.arrayBuffer();
+                        geojson = await shp(buffer);
+                    } else {
+                        const text = await file.text();
+                        geojson = JSON.parse(text);
+                    }
+
+                    const features = geojson.type === 'FeatureCollection' ? geojson.features : [geojson];
+                    
+                    for (let f of features) {
+                        if (!f.properties) f.properties = {};
+                        f.properties.id = 'imported-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+                        cadastreData.features.push(f);
+                        await setDoc(doc(db, "parcels", f.properties.id), f);
+                    }
+
+                    refreshAllLayers();
+                    const bbox = turf.bbox(geojson);
+                    map.fitBounds(bbox, { padding: 60, maxZoom: 19, duration: 1500 });
+                    alert(`Berhasil meng-import ${features.length} data ke Firestore!`);
+                } catch (err) { alert("Gagal menguraikan file."); }
+            });
+        }
+
+        function setupExportAndPrintTools() {
+            document.getElementById('btn-export-geojson').addEventListener('click', () => {
+                const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cadastreData, null, 2));
+                const a = document.createElement('a');
+                a.setAttribute("href", str);
+                a.setAttribute("download", `WebGIS_Export_${Date.now()}.geojson`);
+                document.body.appendChild(a); a.click(); a.remove();
+            });
+
+            document.getElementById('btn-screenshot-png').addEventListener('click', () => {
+                map.once('render', () => {
+                    const imgURI = map.getCanvas().toDataURL("image/png");
+                    const a = document.createElement('a');
+                    a.setAttribute("href", imgURI);
+                    a.setAttribute("download", `WebGIS_Map_${Date.now()}.png`);
+                    document.body.appendChild(a); a.click(); a.remove();
+                });
+                map.triggerRepaint();
+            });
+
+            document.getElementById('btn-print-pdf').addEventListener('click', () => {
+                map.once('render', () => {
+                    const imgData = map.getCanvas().toDataURL("image/png");
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('landscape', 'mm', 'a4');
+                    pdf.text("PETA CADASTRA WEBGIS", 14, 15);
+                    pdf.addImage(imgData, 'PNG', 14, 25, 269, 165);
+                    pdf.save(`Peta_Cadastral_${Date.now()}.pdf`);
+                });
+                map.triggerRepaint();
+            });
+
+            document.getElementById('basemap-select').addEventListener('change', (e) => {
+                const val = e.target.value;
+                map.setStyle({
+                    version: 8,
+                    sources: {
+                        'esri-satellite': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 },
+                        'carto-dark': { type: 'raster', tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], tileSize: 256 },
+                        'osm': { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256 }
+                    },
+                    layers: [{ id: 'base-layer', type: 'raster', source: val === 'esri_sat' ? 'esri-satellite' : val === 'carto_dark' ? 'carto-dark' : 'osm' }]
+                });
+                map.once('style.load', () => initMapLayers());
+            });
+        }
+
+        function setupCameraControls() {
+            const btn2D = document.getElementById('float-btn-2d');
+            const btn3D = document.getElementById('float-btn-3d');
+
+            btn2D.addEventListener('click', () => {
+                map.easeTo({ pitch: 0 });
+                btn2D.className = 'btn-cam btn-cam-active';
+                btn3D.className = 'btn-cam';
+            });
+
+            btn3D.addEventListener('click', () => {
+                map.easeTo({ pitch: 55 });
+                btn3D.className = 'btn-cam btn-cam-active';
+                btn2D.className = 'btn-cam';
+            });
+
+            document.getElementById('btn-rotate-ccw').addEventListener('click', () => map.easeTo({ bearing: map.getBearing() - 45, duration: 400 }));
+            document.getElementById('btn-rotate-cw').addEventListener('click', () => map.easeTo({ bearing: map.getBearing() + 45, duration: 400 }));
+            document.getElementById('btn-reset-north').addEventListener('click', () => map.easeTo({ bearing: 0, pitch: 0, duration: 500 }));
+        }
+    </script>
+</body>
+</html>

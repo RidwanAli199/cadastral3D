@@ -732,6 +732,10 @@
             let activePopup = null;
             let violationsFilterActive = false;
             let currentBidangCalcBase = null;
+            // Status tampil/sembunyi tiap layer (checkbox "PENGATURAN LAYER"), dipakai juga
+            // oleh performBulkDelete() supaya kategori yang sedang disembunyikan (hide)
+            // otomatis dikecualikan dari penghapusan area massal.
+            let layerVisibility = { bidang: true, bangunan: true, jalan: true, aoi: true };
 
             // Ketentuan intensitas pemanfaatan ruang per zona, diambil langsung dari
             // Perda Kota Bandar Lampung No. 4 Tahun 2021 tentang RTRW Tahun 2021-2041:
@@ -1017,6 +1021,7 @@
             function setupLayerToggles() {
                 document.getElementById('chk-layer-2d').addEventListener('change', (e) => {
                     const vis = e.target.checked ? 'visible' : 'none';
+                    layerVisibility.bidang = e.target.checked;
                     if (map.getLayer('cadastre-fill')) map.setLayoutProperty('cadastre-fill', 'visibility', vis);
                     if (map.getLayer('cadastre-line')) map.setLayoutProperty('cadastre-line', 'visibility', vis);
                     if (map.getLayer('cadastre-violation-marker')) map.setLayoutProperty('cadastre-violation-marker', 'visibility', vis);
@@ -1024,16 +1029,19 @@
 
                 document.getElementById('chk-layer-3d').addEventListener('change', (e) => {
                     const vis = e.target.checked ? 'visible' : 'none';
+                    layerVisibility.bangunan = e.target.checked;
                     if (map.getLayer('cadastre-3d-extrusion')) map.setLayoutProperty('cadastre-3d-extrusion', 'visibility', vis);
                 });
 
                 document.getElementById('chk-layer-road').addEventListener('change', (e) => {
                     const vis = e.target.checked ? 'visible' : 'none';
+                    layerVisibility.jalan = e.target.checked;
                     if (map.getLayer('cadastre-road-line')) map.setLayoutProperty('cadastre-road-line', 'visibility', vis);
                 });
 
                 document.getElementById('chk-layer-aoi').addEventListener('change', (e) => {
                     const vis = e.target.checked ? 'visible' : 'none';
+                    layerVisibility.aoi = e.target.checked;
                     if (map.getLayer('cadastre-aoi-fill')) map.setLayoutProperty('cadastre-aoi-fill', 'visibility', vis);
                     if (map.getLayer('cadastre-aoi-line')) map.setLayoutProperty('cadastre-aoi-line', 'visibility', vis);
                 });
@@ -1967,7 +1975,9 @@
 
             function performBulkDelete(drawnArea) {
                 const targets = cadastreData.features.filter(f =>
-                    f.properties.category !== 'aoi' && isFeatureIntersectingArea(f, drawnArea)
+                    f.properties.category !== 'aoi' &&
+                    layerVisibility[f.properties.category] !== false && // layer yang sedang di-hide dikecualikan dari hapus area
+                    isFeatureIntersectingArea(f, drawnArea)
                 );
 
                 if (targets.length === 0) {

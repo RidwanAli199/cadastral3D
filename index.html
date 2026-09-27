@@ -85,6 +85,9 @@
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: center; }
         .stat-box { background: rgba(30, 41, 59, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #334155; }
         .stat-value { font-size: 20px; font-weight: bold; color: #38bdf8; margin-top: 2px; }
+        .stat-box-clickable { cursor: pointer; user-select: none; transition: border-color 0.15s, background 0.15s; }
+        .stat-box-clickable:hover { border-color: #f43f5e; }
+        .stat-box-clickable.active { border-color: #f43f5e; background: rgba(136, 19, 55, 0.35); }
 
         .btn-action-info { width: 100%; background-color: #1e293b; border: 1px solid #334155; color: #f8fafc; padding: 9px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: left; display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 6px; transition: background 0.15s; }
         .btn-action-info:hover { background-color: #334155; border-color: #0284c7; color: #38bdf8; }
@@ -157,6 +160,17 @@
             .panel-container-left, .panel-container-right { width: calc(100% - 32px); max-height: 42vh; }
             .panel-container-attr { right: 16px; left: 16px; width: auto; }
         }
+
+        /* Paksa kursor PANAH (bukan tangan/grab bawaan MapLibre) selama mode
+           menggambar aktif, supaya titik klik terlihat jelas. Menggunakan
+           !important + kelas pada #map agar tetap menang walau ada CSS/JS
+           lain (mis. dari MapLibre atau Mapbox Draw) yang mencoba mengubah
+           kursor peta ke 'grab'/'crosshair' saat mode gambar berjalan. */
+        #map.arrow-cursor-mode,
+        #map.arrow-cursor-mode .maplibregl-canvas-container,
+        #map.arrow-cursor-mode .maplibregl-canvas {
+            cursor: default !important;
+        }
     </style>
 </head>
 <body>
@@ -221,8 +235,11 @@
                 <div style="color: #94a3b8; font-size: 9px; font-weight: 600; text-transform: uppercase;">Total Bangunan</div>
                 <div id="stat-total-bangunan" class="stat-value" style="font-size: 16px; color: #38bdf8;">0</div>
             </div>
-            <div class="stat-box" style="padding: 8px 4px;">
-                <div style="color: #94a3b8; font-size: 9px; font-weight: 600; text-transform: uppercase;">Pelanggaran KDB/RTH</div>
+            <div class="stat-box stat-box-clickable" id="stat-box-violations" style="padding: 8px 4px;" title="Klik untuk tampilkan/sembunyikan tanda peringatan denda di peta">
+                <div style="color: #94a3b8; font-size: 9px; font-weight: 600; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    Pelanggaran KDB/RTH
+                    <i class="fa-solid fa-eye-slash" id="stat-violations-eye-icon" style="font-size: 8px;"></i>
+                </div>
                 <div id="stat-violations" class="stat-value" style="font-size: 16px; color: #f43f5e;">0</div>
             </div>
         </div>
@@ -731,6 +748,11 @@
             let isMeasurementMode = null;
             let activePopup = null;
             let violationsFilterActive = false;
+            // Tanda peringatan denda (ikon "!" merah) di peta kini disembunyikan SECARA DEFAULT
+            // dan hanya dimunculkan saat pengguna menekan kotak statistik "Pelanggaran KDB/RTH"
+            // di panel kiri (lihat toggleViolationMarkers()). Ini murni soal visibilitas ikon --
+            // data pelanggaran itu sendiri tetap dihitung seperti biasa di latar belakang.
+            let violationMarkersVisible = false;
             let currentBidangCalcBase = null;
             // Status tampil/sembunyi tiap layer (checkbox "PENGATURAN LAYER"), dipakai juga
             // oleh performBulkDelete() supaya kategori yang sedang disembunyikan (hide)
@@ -1034,7 +1056,7 @@
                     if (map.getLayer('cadastre-fill')) map.setLayoutProperty('cadastre-fill', 'visibility', vis);
                     if (map.getLayer('cadastre-line')) map.setLayoutProperty('cadastre-line', 'visibility', vis);
                     if (map.getLayer('cadastre-line-hit')) map.setLayoutProperty('cadastre-line-hit', 'visibility', vis);
-                    if (map.getLayer('cadastre-violation-marker')) map.setLayoutProperty('cadastre-violation-marker', 'visibility', vis);
+                    updateViolationMarkerVisibility();
                 });
 
                 document.getElementById('chk-layer-3d').addEventListener('change', (e) => {
@@ -1299,6 +1321,80 @@
                 const ids = getViolatingBidangIds();
                 map.setFilter('cadastre-violation-marker', ['all', ['==', ['get', 'category'], 'bidang'], ['in', ['get', 'id'], ['literal', ids]]]);
                 updateStats();
+            }
+
+            // Visibilitas ikon peringatan denda ("!") bergantung pada DUA hal sekaligus:
+            // (1) layer 2D bidang sedang ditampilkan atau tidak (checklist layer), dan
+            // (2) apakah pengguna sudah menekan kotak "Pelanggaran KDB/RTH" untuk memunculkannya
+            // (violationMarkersVisible). Fungsi ini dipanggil setiap kali salah satu dari
+            // keduanya berubah, supaya kedua kondisi tetap konsisten tanpa saling menimpa.
+            function updateViolationMarkerVisibility() {
+                if (!map.getLayer('cadastre-violation-marker')) return;
+                const vis = (violationMarkersVisible && layerVisibility.bidang) ? 'visible' : 'none';
+                map.setLayoutProperty('cadastre-violation-marker', 'visibility', vis);
+            }
+
+            // Tombol/kotak "Pelanggaran KDB/RTH" di panel kiri berfungsi sebagai saklar
+            // tampil/sembunyikan tanda peringatan denda di peta. Data pelanggaran itu sendiri
+            // (jumlah, perhitungan denda, dsb.) tetap selalu dihitung seperti biasa -- yang
+            // berubah hanya apakah ikon "!" ditampilkan di peta atau tidak.
+            function toggleViolationMarkers() {
+                violationMarkersVisible = !violationMarkersVisible;
+                updateViolationMarkerVisibility();
+
+                const box = document.getElementById('stat-box-violations');
+                const icon = document.getElementById('stat-violations-eye-icon');
+                if (box) box.classList.toggle('active', violationMarkersVisible);
+                if (icon) {
+                    icon.classList.toggle('fa-eye', violationMarkersVisible);
+                    icon.classList.toggle('fa-eye-slash', !violationMarkersVisible);
+                }
+            }
+
+            function setupViolationMarkerToggle() {
+                const box = document.getElementById('stat-box-violations');
+                if (box) box.addEventListener('click', toggleViolationMarkers);
+            }
+
+            // Tombol ESC menutup kotak/panel informasi yang sedang terbuka -- modal (login,
+            // alert, konfirmasi, detail pelanggaran), panel atribut bidang/bangunan/jalan, dan
+            // dropdown hasil pencarian. Hanya SATU hal (yang paling "di atas" / relevan) yang
+            // ditutup per penekanan ESC, sesuai urutan prioritas di bawah, supaya perilakunya
+            // wajar seperti pola UI pada umumnya (ESC menutup dialog paling depan dulu).
+            function setupEscapeKeyClose() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Escape' && e.key !== 'Esc') return;
+
+                    const isOpen = (id) => {
+                        const el = document.getElementById(id);
+                        return el && !el.classList.contains('hidden');
+                    };
+
+                    if (isOpen('custom-confirm-modal')) {
+                        document.getElementById('confirm-modal-cancel-btn').click();
+                        return;
+                    }
+                    if (isOpen('custom-alert-modal')) {
+                        document.getElementById('alert-modal-close-btn').click();
+                        return;
+                    }
+                    if (isOpen('violation-modal')) {
+                        document.getElementById('close-violation-modal').click();
+                        return;
+                    }
+                    if (isOpen('login-modal')) {
+                        document.getElementById('close-login-modal').click();
+                        return;
+                    }
+                    if (isOpen('panel-attr-bidang') || isOpen('panel-attr-bangunan') || isOpen('panel-attr-jalan')) {
+                        window.closeAllAttrPanels();
+                        return;
+                    }
+                    const searchResults = document.getElementById('search-results');
+                    if (searchResults && !searchResults.classList.contains('hidden')) {
+                        searchResults.classList.add('hidden');
+                    }
+                });
             }
 
             function openViolationModal(bidangFeature) {
@@ -1895,7 +1991,10 @@
                         'icon-image': 'violation-icon',
                         'icon-size': 0.5,
                         'icon-allow-overlap': true,
-                        'icon-ignore-placement': true
+                        'icon-ignore-placement': true,
+                        // Disembunyikan secara default -- hanya dimunculkan saat pengguna menekan
+                        // kotak statistik "Pelanggaran KDB/RTH" (lihat toggleViolationMarkers()).
+                        'visibility': 'none'
                     }
                 });
 
@@ -2139,6 +2238,8 @@
                 isMeasurementMode = null;
                 try { Draw.deleteAll(); } catch (err) {}
                 try { Draw.changeMode('simple_select'); } catch (err) {}
+                map.getCanvas().style.cursor = '';
+                document.getElementById('map').classList.remove('arrow-cursor-mode');
 
                 ['btn-measure-distance', 'btn-measure-area'].forEach(id => {
                     const el = document.getElementById(id);
@@ -2148,6 +2249,36 @@
             }
 
             function setupDigitizing() {
+                // Selama menggambar (bidang/jalan/bangunan/area hapus massal/pengukuran jarak
+                // & luas), kursor peta secara default memakai ikon TANGAN (grab) bawaan
+                // MapLibre -- ini membingungkan karena tidak jelas titik persisnya di mana
+                // klik akan jatuh. Di sini kursor dipaksa menjadi PANAH biasa selama mode
+                // menggambar aktif ('draw_point'/'draw_line_string'/'draw_polygon'), lalu
+                // otomatis kembali ke kursor tangan normal saat mode menggambar berakhir
+                // (baik karena bentuk selesai digambar, dibatalkan, maupun ditekan tombol
+                // Batal) -- berlaku untuk SEMUA tombol gambar tanpa perlu diatur satu-satu.
+                map.on('draw.modechange', (e) => {
+                    const drawingModes = ['draw_point', 'draw_line_string', 'draw_polygon'];
+                    const isDrawing = drawingModes.includes(e.mode);
+                    map.getCanvas().style.cursor = isDrawing ? 'default' : '';
+                    // Kelas CSS dengan !important sebagai pengaman tambahan: tetap
+                    // memaksa kursor panah walau ada script lain yang menimpa
+                    // style.cursor pada canvas/canvas-container setelah baris di atas.
+                    document.getElementById('map').classList.toggle('arrow-cursor-mode', isDrawing);
+                });
+
+                // Pengaman tambahan: selama mode menggambar aktif, paksa ulang kursor
+                // menjadi panah pada setiap gerakan mouse, jaga-jaga kalau ada
+                // interaksi lain (hover fitur, dsb.) yang sempat mengubahnya.
+                map.on('mousemove', () => {
+                    if (!activeDrawType && !isMeasurementMode) return;
+                    const currentMode = Draw.getMode ? Draw.getMode() : null;
+                    const drawingModes = ['draw_point', 'draw_line_string', 'draw_polygon'];
+                    if (currentMode && drawingModes.includes(currentMode)) {
+                        map.getCanvas().style.cursor = 'default';
+                    }
+                });
+
                 map.on('draw.create', (e) => {
                     const drawn = e.features[0];
 
@@ -2911,6 +3042,8 @@
                 setupImports();
                 setupExports();
                 setupViolationUI();
+                setupViolationMarkerToggle();
+                setupEscapeKeyClose();
             });
         })();
     </script>

@@ -8,12 +8,25 @@
     <!-- Cross-Origin Frame Patch: Fixes MapLibre SecurityError when embedded in sandboxed previews -->
     <script>
         (function() {
+            // Hanya terapkan patch jika halaman BENAR-BENAR berada di dalam iframe cross-origin
+            // yang menyebabkan SecurityError saat mengakses window.top/parent. Jika halaman
+            // dibuka normal (bukan di iframe sandbox), window.top tetap window asli sehingga
+            // tidak mengganggu library lain (geolocation, popup, dsb).
+            let needsPatch = false;
             try {
-                Object.defineProperty(window, 'top', { get: function() { return window; }, configurable: true });
-            } catch (e) {}
-            try {
-                Object.defineProperty(window, 'parent', { get: function() { return window; }, configurable: true });
-            } catch (e) {}
+                // Mengakses window.top di iframe cross-origin sandbox akan melempar SecurityError.
+                void window.top.location.href;
+            } catch (e) {
+                needsPatch = true;
+            }
+            if (needsPatch) {
+                try {
+                    Object.defineProperty(window, 'top', { get: function() { return window; }, configurable: true });
+                } catch (e) {}
+                try {
+                    Object.defineProperty(window, 'parent', { get: function() { return window; }, configurable: true });
+                } catch (e) {}
+            }
         })();
     </script>
 
@@ -671,7 +684,21 @@
                     await signInAnonymously(auth);
                 }
             } catch (err) {
-                console.warn("Firebase Auth initial setup fallback:", err);
+                // auth/admin-restricted-operation berarti provider "Anonymous" belum
+                // diaktifkan di Firebase Console (Authentication > Sign-in method).
+                // Ini adalah pengaturan project, bukan bug kode: aplikasi tetap berjalan
+                // dalam mode publik (tanpa sesi anonim), hanya sinkronisasi Firestore
+                // realtime yang bisa jadi tidak tersedia sampai provider ini diaktifkan.
+                if (err && err.code === 'auth/admin-restricted-operation') {
+                    console.warn(
+                        "Firebase: Anonymous Authentication belum diaktifkan di Firebase Console " +
+                        "(Authentication > Sign-in method > Anonymous > Enable). Aplikasi tetap " +
+                        "berjalan, namun sinkronisasi data Firestore realtime mungkin tidak aktif " +
+                        "sampai provider ini diaktifkan."
+                    );
+                } else {
+                    console.warn("Firebase Auth initial setup fallback:", err);
+                }
             }
         })();
     </script>
@@ -1450,8 +1477,11 @@
                     });
                     refreshCadastreSource();
                 }, (err) => {
-                    console.warn('Gagal sinkronisasi realtime dari Firestore (cek rules Firestore Anda):', err);
-                    showAlert('Gagal memuat data tersimpan dari server (cek koneksi/izin Firestore).', 'fa-triangle-exclamation', '#f43f5e');
+                    // Penyebab paling umum: (1) ad-blocker/ekstensi browser memblokir domain
+                    // firestore.googleapis.com (net::ERR_BLOCKED_BY_CLIENT), atau (2) rules
+                    // Firestore menolak akses karena sesi auth (anonim/login) belum tersedia.
+                    console.warn('Gagal sinkronisasi realtime dari Firestore (cek ad-blocker browser & rules Firestore Anda):', err);
+                    showAlert('Gagal memuat data tersimpan dari server. Jika Anda memakai ad-blocker, coba nonaktifkan untuk domain ini, atau periksa izin/rules Firestore.', 'fa-triangle-exclamation', '#f43f5e');
                 });
             }
 

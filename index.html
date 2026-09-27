@@ -1520,8 +1520,8 @@
             }
             // Field yang sudah punya kolom sendiri di formulir (tidak perlu diulang di tabel atribut asal).
             const CORE_KEYS_BY_CATEGORY = {
-                bidang: ['category', 'sumber', 'id', 'nib', 'pemilik', 'zona'],
-                bangunan: ['category', 'sumber', 'id', 'nib', 'jumlah_lantai', 'height', 'base_height', 'fungsi', 'hak', 'status'],
+                bidang: ['category', 'sumber', 'id', 'nib', 'pemilik', 'zona', 'zona_asal'],
+                bangunan: ['category', 'sumber', 'id', 'nib', 'jumlah_lantai', 'height', 'base_height', 'fungsi', 'fungsi_asal', 'hak', 'status'],
                 jalan: ['category', 'sumber', 'id', 'nama', 'fungsi', 'lebar', 'perkerasan']
             };
             function normKeyForCompare(k) {
@@ -2432,6 +2432,7 @@
                     f.properties.nib = document.getElementById('attr-bidang-nib').value;
                     f.properties.pemilik = document.getElementById('attr-bidang-pemilik').value;
                     f.properties.zona = document.getElementById('attr-bidang-zona').value;
+                    f.properties.zona_asal = true; // dipilih manual oleh pengguna, jangan ditimpa otomatis
 
                     selectedFeature = f;
                     refreshCadastreSource();
@@ -2467,6 +2468,7 @@
                     f.properties.jumlah_lantai = lantai;
                     f.properties.height = lantai * 3;
                     f.properties.fungsi = document.getElementById('attr-bgn-fungsi').value;
+                    f.properties.fungsi_asal = true; // dipilih manual oleh pengguna, jangan ditimpa otomatis
                     f.properties.hak = document.getElementById('attr-bgn-hak').value;
                     f.properties.status = document.getElementById('attr-bgn-status').value;
 
@@ -2670,6 +2672,91 @@
                     public: 'Infrastruktur Umum', industrial: 'Infrastruktur Umum', warehouse: 'Infrastruktur Umum', factory: 'Infrastruktur Umum', church: 'Infrastruktur Umum', mosque: 'Infrastruktur Umum'
                 };
                 return map[s] || null;
+            }
+
+            // Pemetaan silang zona (bidang) <-> fungsi bangunan, dipakai oleh reconcileZonaFungsiByNib()
+            // untuk menurunkan zona sebuah bidang dari fungsi bangunan yang berdiri di atasnya (dan
+            // sebaliknya) ketika salah satu file sumber (bidang ATAU bangunan) tidak menyertakan
+            // kolom zona/fungsi-nya sendiri, selama kedua data terhubung lewat NIB yang sama.
+            function fungsiBangunanKeZona(fungsi) {
+                switch (fungsi) {
+                    case 'Rumah / Permukiman': return 'Permukiman';
+                    case 'Toko / Komersial': return 'Komersial';
+                    case 'Sekolah / Pendidikan':
+                    case 'Puskesmas / Kesehatan':
+                    case 'Kantor Pemerintahan':
+                    case 'Infrastruktur Umum':
+                        return 'Fasilitas Umum';
+                    default: return null;
+                }
+            }
+            function zonaKeFungsiBangunan(zona) {
+                switch (zona) {
+                    case 'Permukiman': return 'Rumah / Permukiman';
+                    case 'Komersial': return 'Toko / Komersial';
+                    case 'Industri': return 'Infrastruktur Umum';
+                    case 'Fasilitas Umum': return 'Infrastruktur Umum';
+                    default: return null;
+                }
+            }
+            // Menyamakan zona (bidang) & fungsi (bangunan) yang NIB-nya sama, HANYA pada arah yang
+            // datanya belum punya nilai "asli" sendiri (ditandai flag zona_asal/fungsi_asal). Ini
+            // menyelesaikan kasus dua file diimpor terpisah (mis. file bidang tanpa kolom zona, file
+            // bangunan punya kolom fungsi) supaya warna bidang tetap menyesuaikan peruntukan/fungsi
+            // bangunan yang berdiri di atasnya, walau data zona tidak ada di file bidang itu sendiri.
+            function reconcileZonaFungsiByNib() {
+                const bangunanByNib = {};
+                const bidangByNib = {};
+                cadastreData.features.forEach(f => {
+                    const nib = f.properties && f.properties.nib ? cleanNib(f.properties.nib) : '';
+                    if (!nib) return;
+                    const key = nib.toLowerCase();
+                    if (f.properties.category === 'bangunan') {
+                        (bangunanByNib[key] = bangunanByNib[key] || []).push(f);
+                    } else if (f.properties.category === 'bidang') {
+                        (bidangByNib[key] = bidangByNib[key] || []).push(f);
+                    }
+                });
+
+                const changed = [];
+
+                // Bidang <- fungsi bangunan pasangannya (hanya pakai bangunan yang fungsinya "asli").
+                Object.keys(bidangByNib).forEach(nibKey => {
+                    const bgList = bangunanByNib[nibKey];
+                    if (!bgList) return;
+                    const sourceBg = bgList.find(bg => bg.properties.fungsi_asal);
+                    if (!sourceBg) return;
+                    const inferredZona = fungsiBangunanKeZona(sourceBg.properties.fungsi);
+                    if (!inferredZona) return;
+                    bidangByNib[nibKey].forEach(bd => {
+                        if (bd.properties.zona_asal) return; // zona sudah eksplisit, jangan ditimpa
+                        if (bd.properties.zona !== inferredZona) {
+                            bd.properties.zona = inferredZona;
+                            bd.properties.zona_asal = true; // dianggap sudah punya sumber pasti (turunan)
+                            changed.push(bd);
+                        }
+                    });
+                });
+
+                // Bangunan <- zona bidang pasangannya (hanya pakai bidang yang zonanya "asli"/pasti).
+                Object.keys(bangunanByNib).forEach(nibKey => {
+                    const bdList = bidangByNib[nibKey];
+                    if (!bdList) return;
+                    const sourceBd = bdList.find(bd => bd.properties.zona_asal);
+                    if (!sourceBd) return;
+                    const inferredFungsi = zonaKeFungsiBangunan(sourceBd.properties.zona);
+                    if (!inferredFungsi) return;
+                    bangunanByNib[nibKey].forEach(bg => {
+                        if (bg.properties.fungsi_asal) return; // fungsi sudah eksplisit, jangan ditimpa
+                        if (bg.properties.fungsi !== inferredFungsi) {
+                            bg.properties.fungsi = inferredFungsi;
+                            bg.properties.fungsi_asal = true;
+                            changed.push(bg);
+                        }
+                    });
+                });
+
+                return changed;
             }
             function detectHak(raw) {
                 if (!raw) return '';
@@ -3031,6 +3118,10 @@
                         // Khusus NIB: jika data sumber tidak punya nomor NIB, buatkan otomatis
                         // (generateAutoNib) agar NIB SELALU terisi setelah import (bidang & bangunan).
                         if (effectiveCategory === 'bangunan') {
+                            // Tandai apakah fungsi berasal dari data sumber yang sebenarnya (normalized.fungsi
+                            // terisi), supaya reconcileZonaFungsiByNib() tahu mana nilai yang boleh ditimpa
+                            // otomatis dari data pasangannya (bidang) dan mana yang harus dipertahankan.
+                            f.properties.fungsi_asal = !!normalized.fungsi;
                             f.properties.fungsi = f.properties.fungsi || 'Rumah / Permukiman';
                             f.properties.jumlah_lantai = f.properties.jumlah_lantai || 1;
                             f.properties.height = f.properties.height || (f.properties.jumlah_lantai * 3);
@@ -3039,6 +3130,8 @@
                             f.properties.status = f.properties.status || '';
                             if (!f.properties.nib) { f.properties.nib = generateAutoNib('bangunan', idx); autoNibCount++; }
                         } else if (effectiveCategory === 'bidang') {
+                            // Sama seperti fungsi_asal di atas, tapi untuk zona bidang.
+                            f.properties.zona_asal = !!normalized.zona;
                             f.properties.zona = f.properties.zona || 'Permukiman';
                             f.properties.pemilik = f.properties.pemilik || 'Pemilik Import';
                             if (!f.properties.nib) { f.properties.nib = generateAutoNib('bidang', idx); autoNibCount++; }
@@ -3084,6 +3177,19 @@
                         cadastreData.features.push(f);
                         importedFeatures.push(f);
                     });
+
+                    // Sinkronkan zona (bidang) <-> fungsi (bangunan) berdasarkan NIB yang sama, supaya
+                    // warna tetap menyesuaikan peruntukan/fungsi walau data bidang & bangunan diimpor
+                    // dari file terpisah dan salah satu file tidak punya kolom zona/fungsi sendiri.
+                    // Dijalankan terhadap SELURUH data di peta (bukan cuma yang baru diimpor), supaya
+                    // data lama yang sebelumnya belum punya pasangan juga ikut ter-update begitu
+                    // pasangannya baru saja diimpor.
+                    const reconciledFeatures = reconcileZonaFungsiByNib();
+                    const reconciledCount = reconciledFeatures.length;
+                    // Fitur hasil reconciliation yang BUKAN bagian dari batch import kali ini (artinya
+                    // sudah tersimpan sebelumnya di Firestore) perlu disimpan ulang agar perubahan
+                    // zona/fungsi-nya permanen, bukan cuma tampil sementara di layar.
+                    const reconciledNeedResave = reconciledFeatures.filter(rf => !importedFeatures.includes(rf));
 
                     // Tampilkan hasil import ke peta SEGERA (tidak menunggu proses simpan ke
                     // Firestore selesai), supaya pengguna langsung melihat datanya di layar.
@@ -3142,6 +3248,13 @@
                         });
                     }
 
+                    // Simpan ulang data lama (di luar batch import ini) yang zona/fungsi-nya berubah
+                    // hasil sinkronisasi silang NIB, supaya perubahan warnanya permanen di server.
+                    for (let i = 0; i < reconciledNeedResave.length; i += BATCH_SIZE) {
+                        const batch = reconciledNeedResave.slice(i, i + BATCH_SIZE);
+                        await Promise.all(batch.map(bf => persistFeature(bf)));
+                    }
+
                     let msg = `${feats.length} fitur berhasil diimpor ke peta.`;
                     if (mappedAttrCount > 0) {
                         msg += ` Atribut ${mappedAttrCount} fitur otomatis disesuaikan (mapping NIB/fungsi/hak/status/dll) ke skema aplikasi.`;
@@ -3157,6 +3270,9 @@
                         if (replaceDeleteFailCount > 0) {
                             msg += ` (Peringatan: ${replaceDeleteFailCount} dari data lama tersebut gagal terhapus permanen di server, kemungkinan masih tersisa saat halaman di-refresh.)`;
                         }
+                    }
+                    if (reconciledCount > 0) {
+                        msg += ` ${reconciledCount} data bidang/bangunan warnanya otomatis disesuaikan mengikuti peruntukan/fungsi pasangannya (dicocokkan lewat NIB yang sama).`;
                     }
 
                     if (failedCount === 0) {

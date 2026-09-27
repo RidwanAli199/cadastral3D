@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGIS Cadastral 2D & 3D - Sistem Informasi Pertanahan</title>
+    <title>Sistem Kadaster 3D - Estimasi Denda Pelanggaran RTRW & RTH Kota Bandar Lampung</title>
 
     <!-- Cross-Origin Frame Patch: Fixes MapLibre SecurityError when embedded in sandboxed previews -->
     <script>
@@ -74,6 +74,13 @@
         .btn-disabled { opacity: 0.5; cursor: not-allowed; }
 
         .badge-mode { font-size: 10px; background: #1e293b; color: #38bdf8; padding: 4px 8px; border-radius: 4px; border: 1px solid #334155; font-family: monospace; display: inline-block; }
+        .badge-sync { font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; border: 1px solid; }
+        .badge-sync.online { background: rgba(6, 78, 59, 0.5); border-color: #059669; color: #6ee7b7; }
+        .badge-sync.offline { background: rgba(136, 19, 55, 0.5); border-color: #be123c; color: #fecdd3; }
+        .badge-sync-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; flex-shrink: 0; }
+        .badge-sync.online .badge-sync-dot { animation: sync-pulse 1.8s ease-in-out infinite; }
+        @keyframes sync-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .legal-basis-note { font-size: 9.5px; color: #64748b; margin-top: 6px; line-height: 1.4; }
 
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: center; }
         .stat-box { background: rgba(30, 41, 59, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #334155; }
@@ -160,11 +167,13 @@
     <div class="panel-container-left">
         <div class="card-panel">
             <div class="header-title">
-                <h1><i class="fa-solid fa-layer-group"></i> Cadastral 2D & 3D</h1>
+                <h1><i class="fa-solid fa-layer-group"></i> Sistem Kadaster 3D</h1>
                 <button id="auth-action-btn" class="btn btn-login"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
             </div>
-            <p class="subtitle">Sistem Informasi Pertanahan & Monitoring RTH</p>
-            
+            <p class="subtitle">Estimasi Denda Pelanggaran RTRW &amp; RTH Kota Bandar Lampung</p>
+            <div id="db-sync-badge" class="badge-sync online"><span class="badge-sync-dot"></span> <span id="db-sync-text">Database Sinkron (Online)</span></div>
+            <div class="legal-basis-note"><i class="fa-solid fa-scale-balanced"></i> Dasar hukum: Perda Kota Bandar Lampung No. 4 Tahun 2021 tentang RTRW Tahun 2021–2041 (Pasal 69, 71–72, 80 &amp; 96).</div>
+
             <div style="display: flex; align-items: center; gap: 6px; margin-top: 12px;">
                 <button id="mode-btn-info" class="btn btn-mode-active">Mode Info</button>
                 <button id="mode-btn-editor" class="btn btn-mode-inactive hidden" title="Login untuk mengakses Mode Editor">
@@ -232,12 +241,13 @@
         </div>
 
         <div class="card-panel">
-            <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 8px;">Legenda Peruntukan Lahan 2D</span>
+            <span style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 8px;">Legenda Peruntukan Lahan 2D (Outline Bidang)</span>
             <div class="legend-item"><div class="legend-color" style="background: transparent; border: 2px dashed #f59e0b;"></div> Batas Wilayah / AOI</div>
-            <div class="legend-item"><div class="legend-color" style="background: #f59e0b;"></div> Zone Komersial (Min 20% RTH)</div>
-            <div class="legend-item"><div class="legend-color" style="background: #0284c7;"></div> Zone Permukiman (Min 30% RTH)</div>
-            <div class="legend-item"><div class="legend-color" style="background: #a855f7;"></div> Zone Industri (Min 15% RTH)</div>
-            <div class="legend-item"><div class="legend-color" style="background: #10b981;"></div> Zone Fasilitas Umum (Min 25% RTH)</div>
+            <div class="legend-item"><div class="legend-color" style="background: transparent; border: 2.5px solid #f59e0b; border-radius: 2px;"></div> Zone Komersial (Min 20% RTH, Maks 80% KDB)</div>
+            <div class="legend-item"><div class="legend-color" style="background: transparent; border: 2.5px solid #0284c7; border-radius: 2px;"></div> Zone Permukiman (Min 20% RTH, Maks 80% KDB)</div>
+            <div class="legend-item"><div class="legend-color" style="background: transparent; border: 2.5px solid #a855f7; border-radius: 2px;"></div> Zone Industri (Min 10% RTH, Maks 60% KDB)</div>
+            <div class="legend-item"><div class="legend-color" style="background: transparent; border: 2.5px solid #10b981; border-radius: 2px;"></div> Zone Fasilitas Umum (Min 30% RTH, Maks 70% KDB)</div>
+            <div class="legend-item"><div class="legend-color" style="background: transparent; border: 2.5px solid #6b7280; border-radius: 2px;"></div> Zona Belum Diisi (Data Kosong)</div>
             <div class="legend-item"><div class="legend-color" style="background: #a7f3d0; height: 4px;"></div> Infrastruktur Jalan (2D Line)</div>
 
             <span style="font-size: 10px; font-weight: bold; color: #38bdf8; text-transform: uppercase; display: block; margin-top: 10px; margin-bottom: 8px;">Warna Bangunan 3D (Fungsi)</span>
@@ -247,6 +257,7 @@
             <div class="legend-item"><div class="legend-color" style="background: #f43f5e; border: 1px solid #be123c;"></div> Puskesmas / Kesehatan</div>
             <div class="legend-item"><div class="legend-color" style="background: #10b981; border: 1px solid #047857;"></div> Kantor Pemerintahan</div>
             <div class="legend-item"><div class="legend-color" style="background: #94a3b8; border: 1px solid #64748b;"></div> Infrastruktur Umum</div>
+            <div class="legend-item"><div class="legend-color" style="background: #6b7280; border: 1px solid #4b5563;"></div> Fungsi Belum Diisi (Data Kosong)</div>
         </div>
     </div>
 
@@ -354,10 +365,10 @@
 
             <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">PERUNTUKAN ZONA (PERDA)</label>
             <select id="attr-bidang-zona" class="select-input">
-                <option value="Komersial">Komersial (Min RTH 20%)</option>
-                <option value="Permukiman">Permukiman (Min RTH 30%)</option>
-                <option value="Industri">Industri (Min RTH 15%)</option>
-                <option value="Fasilitas Umum">Fasilitas Umum (Min RTH 25%)</option>
+                <option value="Komersial">Komersial (RTH min 20%, KDB maks 80%)</option>
+                <option value="Permukiman">Permukiman (RTH min 20%, KDB maks 80%)</option>
+                <option value="Industri">Industri (RTH min 10%, KDB maks 60%)</option>
+                <option value="Fasilitas Umum">Fasilitas Umum (RTH min 30%, KDB maks 70%)</option>
             </select>
 
             <label style="font-size: 10px; color: #94a3b8; font-weight: 600;">LUAS LAHAN / BIDANG TANAH (M²)</label>
@@ -643,7 +654,7 @@
             <div style="background: rgba(136, 19, 55, 0.5); border: 1px solid #be123c; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px;">
                 <div style="font-size: 9px; color: #fecdd3; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Estimasi Total Denda Administratif</div>
                 <div id="violation-modal-denda" style="font-size: 18px; font-weight: 800; color: #ffffff; margin-top: 4px;">Rp 0</div>
-                <div style="font-size: 9px; color: #fecdd3; margin-top: 4px;">*Estimasi simulasi berdasarkan Perda, bukan nilai final/legal mengikat.</div>
+                <div style="font-size: 9px; color: #fecdd3; margin-top: 4px;">*Jenis sanksi (denda administratif) merujuk Pasal 80 ayat (5) huruf b jo. Pasal 96 Perda Kota Bandar Lampung No. 4/2021 tentang RTRW 2021-2041. Perda tidak mengatur besaran nominal denda secara rinci, sehingga angka di atas adalah SIMULASI/estimasi internal aplikasi — bukan nilai resmi/final yang mengikat secara hukum. Selain denda, pelanggar juga berpotensi dikenai sanksi lain seperti penghentian sementara kegiatan, pembongkaran bangunan, atau pemulihan fungsi ruang.</div>
             </div>
 
             <button id="violation-modal-detail-btn" class="btn btn-login" style="width: 100%;"><i class="fa-solid fa-sliders"></i> Lihat Detail Bidang</button>
@@ -722,7 +733,21 @@
             let violationsFilterActive = false;
             let currentBidangCalcBase = null;
 
-            const ZONA_MIN_RTH = { 'Komersial': 20, 'Permukiman': 30, 'Industri': 15, 'Fasilitas Umum': 25 };
+            // Ketentuan intensitas pemanfaatan ruang per zona, diambil langsung dari
+            // Perda Kota Bandar Lampung No. 4 Tahun 2021 tentang RTRW Tahun 2021-2041:
+            // - Permukiman      -> Kawasan Perumahan (Pasal 71 ayat (2) huruf d)
+            // - Komersial       -> Kawasan Perdagangan & Jasa (Pasal 72 huruf d)
+            // - Industri        -> Kawasan Peruntukan Industri (Pasal 69 huruf c & d)
+            // - Fasilitas Umum  -> Fasilitas Umum & Fasilitas Sosial (Pasal 71 ayat (3) huruf d)
+            // kdhMin = Koefisien Dasar Hijau/RTH minimal (%), kdbMax = Koefisien Dasar Bangunan maksimal (%)
+            const ZONA_RULES = {
+                'Permukiman':     { kdhMin: 20, kdbMax: 80, pasal: 'Pasal 71 ayat (2) huruf d' },
+                'Komersial':      { kdhMin: 20, kdbMax: 80, pasal: 'Pasal 72 huruf d' },
+                'Industri':       { kdhMin: 10, kdbMax: 60, pasal: 'Pasal 69 huruf c dan d' },
+                'Fasilitas Umum': { kdhMin: 30, kdbMax: 70, pasal: 'Pasal 71 ayat (3) huruf d' }
+            };
+            // Kompatibilitas mundur untuk kode yang masih memakai peta persentase RTH minimal saja
+            const ZONA_MIN_RTH = Object.fromEntries(Object.entries(ZONA_RULES).map(([k, v]) => [k, v.kdhMin]));
             const NJOP_RATE_PER_M2 = {
                 'Rumah / Permukiman': 3500000,
                 'Toko / Komersial': 5000000,
@@ -732,9 +757,16 @@
                 'Infrastruktur Umum': 2500000
             };
 
-            // Estimasi tarif denda administratif (simulasi, bukan angka legal resmi)
-            const RATE_DENDA_RTH_PER_M2 = 500000;      // Rp per m2 kekurangan RTH dari syarat minimal
-            const RATE_DENDA_MISUSE = 25000000;         // Rp per bangunan yang tidak sesuai peruntukan zona
+            // Estimasi tarif denda administratif atas pelanggaran pemanfaatan ruang.
+            // Dasar hukum jenis sanksi: Pasal 80 ayat (5) huruf b Perda Kota Bandar
+            // Lampung No. 4 Tahun 2021 (denda administratif) jo. Pasal 96 (ketentuan
+            // pidana). Perda ini TIDAK mencantumkan besaran/formula denda secara rinci
+            // (besaran teknis diatur lebih lanjut melalui Peraturan Walikota), sehingga
+            // seluruh angka rupiah di bawah ini adalah SIMULASI internal aplikasi,
+            // bukan tarif resmi/legal yang mengikat.
+            const RATE_DENDA_RTH_PER_M2 = 500000;        // Rp per m2 kekurangan KDH/RTH dari syarat minimal zona
+            const RATE_DENDA_KDB_PER_M2 = 750000;        // Rp per m2 luas bangunan yang melampaui KDB maksimal zona
+            const RATE_DENDA_MISUSE = 25000000;          // Rp per bangunan yang tidak sesuai peruntukan zona (alih fungsi ruang)
             const RATE_DENDA_ZERO_RTH_EKONOMI = 15000000; // Rp tambahan jika zona ekonomi sama sekali tanpa RTH
 
             const ALLOWED_FUNGSI_BY_ZONA = {
@@ -1061,12 +1093,18 @@
                 const rthArea = Math.max(bidangArea - bgnArea, 0);
                 const rthPercent = bidangArea > 0 ? (rthArea / bidangArea) * 100 : 100;
                 const zona = bidangFeature.properties.zona || 'Permukiman';
-                const minRth = ZONA_MIN_RTH[zona] !== undefined ? ZONA_MIN_RTH[zona] : 20;
-                const compliant = rthPercent >= minRth;
+                const rule = ZONA_RULES[zona] || { kdhMin: 20, kdbMax: 80, pasal: '-' };
+                const minRth = rule.kdhMin;
+                const kdbMax = rule.kdbMax;
+                const pasalZona = rule.pasal;
+                const rthCompliant = rthPercent >= minRth;
+                const kdbCompliant = kdb <= kdbMax;
+                const compliant = rthCompliant && kdbCompliant;
 
                 return {
                     bidangArea, bgnArea, bgnCount: buildings.length, buildings,
-                    kdb, rthArea, rthPercent, minRth, compliant, zona
+                    kdb, rthArea, rthPercent, minRth, kdbMax, pasalZona,
+                    rthCompliant, kdbCompliant, compliant, zona
                 };
             }
 
@@ -1075,10 +1113,16 @@
                 const details = [];
                 let denda = 0;
 
-                if (!calc.compliant) {
+                if (!calc.rthCompliant) {
                     const shortfallArea = Math.max((calc.minRth / 100 * calc.bidangArea) - calc.rthArea, 0);
                     denda += shortfallArea * RATE_DENDA_RTH_PER_M2;
-                    details.push(`RTH realisasi hanya ${calc.rthPercent.toFixed(1)}%, di bawah syarat minimal ${calc.minRth}% untuk zona ${calc.zona} (kekurangan ± ${Math.round(shortfallArea)} m²).`);
+                    details.push(`RTH/KDH realisasi hanya ${calc.rthPercent.toFixed(1)}%, di bawah syarat minimal ${calc.minRth}% untuk zona ${calc.zona} sesuai ${calc.pasalZona} Perda No. 4/2021 (kekurangan ± ${Math.round(shortfallArea)} m²).`);
+                }
+
+                if (!calc.kdbCompliant) {
+                    const excessArea = Math.max(calc.bgnArea - (calc.kdbMax / 100 * calc.bidangArea), 0);
+                    denda += excessArea * RATE_DENDA_KDB_PER_M2;
+                    details.push(`KDB (Koefisien Dasar Bangunan) realisasi ${calc.kdb.toFixed(1)}%, melampaui batas maksimal ${calc.kdbMax}% untuk zona ${calc.zona} sesuai ${calc.pasalZona} Perda No. 4/2021 (kelebihan ± ${Math.round(excessArea)} m²).`);
                 }
 
                 const isEconomicZone = (calc.zona === 'Komersial' || calc.zona === 'Industri');
@@ -1092,7 +1136,7 @@
                 if (misused.length > 0) {
                     denda += misused.length * RATE_DENDA_MISUSE;
                     const fungsiList = [...new Set(misused.map(b => b.properties.fungsi))].join(', ');
-                    details.push(`Zona ${calc.zona} disalahgunakan untuk pembangunan yang tidak sesuai peruntukan (${fungsiList}) pada ${misused.length} bangunan.`);
+                    details.push(`Zona ${calc.zona} disalahgunakan untuk pembangunan yang tidak sesuai peruntukan (${fungsiList}) pada ${misused.length} bangunan (Pasal 80 ayat (3) huruf b).`);
                 }
 
                 return { isViolating: details.length > 0, details, denda, calc };
@@ -1101,10 +1145,14 @@
             function renderBidangCompliance(bidangFeature, overrideZona) {
                 const calc = calcBidangCompliance(bidangFeature);
                 if (overrideZona && currentBidangCalcBase) {
-                    const minRth = ZONA_MIN_RTH[overrideZona] !== undefined ? ZONA_MIN_RTH[overrideZona] : 20;
+                    const rule = ZONA_RULES[overrideZona] || { kdhMin: 20, kdbMax: 80, pasal: '-' };
                     calc.zona = overrideZona;
-                    calc.minRth = minRth;
-                    calc.compliant = calc.rthPercent >= minRth;
+                    calc.minRth = rule.kdhMin;
+                    calc.kdbMax = rule.kdbMax;
+                    calc.pasalZona = rule.pasal;
+                    calc.rthCompliant = calc.rthPercent >= rule.kdhMin;
+                    calc.kdbCompliant = calc.kdb <= rule.kdbMax;
+                    calc.compliant = calc.rthCompliant && calc.kdbCompliant;
                 }
 
                 currentBidangCalcBase = calc;
@@ -1128,12 +1176,15 @@
                     statusBox.classList.remove('violation');
                     statusBox.classList.add('compliant');
                     statusTitle.innerHTML = '<i class="fa-solid fa-circle-check"></i> PATUH ATURAN KDB & RTH';
-                    statusDesc.textContent = `RTH Realisasi ${calc.rthPercent.toFixed(1)}% memenuhi standar minimal Perda (${calc.minRth}%) untuk zona ${calc.zona}.`;
+                    statusDesc.textContent = `RTH ${calc.rthPercent.toFixed(1)}% (min. ${calc.minRth}%) & KDB ${calc.kdb.toFixed(1)}% (maks. ${calc.kdbMax}%) sudah sesuai ${calc.pasalZona} Perda No. 4/2021 untuk zona ${calc.zona}.`;
                 } else {
                     statusBox.classList.remove('compliant');
                     statusBox.classList.add('violation');
                     statusTitle.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> MELANGGAR ATURAN KDB & RTH';
-                    statusDesc.textContent = `RTH Realisasi hanya ${calc.rthPercent.toFixed(1)}%, di bawah standar minimal Perda (${calc.minRth}%) untuk zona ${calc.zona}.`;
+                    const parts = [];
+                    if (!calc.rthCompliant) parts.push(`RTH hanya ${calc.rthPercent.toFixed(1)}% (min. ${calc.minRth}%)`);
+                    if (!calc.kdbCompliant) parts.push(`KDB ${calc.kdb.toFixed(1)}% melampaui maks. ${calc.kdbMax}%`);
+                    statusDesc.textContent = `${parts.join(' & ')} untuk zona ${calc.zona}, tidak sesuai ${calc.pasalZona} Perda Kota Bandar Lampung No. 4/2021.`;
                 }
 
                 if (!overrideZona) {
@@ -1487,8 +1538,20 @@
             // import/edit/hapus yang tersimpan di Firestore ikut dimuat & disinkronkan).
             // Tanpa fungsi ini, data yang berhasil di-setDoc() tidak akan pernah tampil
             // lagi setelah halaman dibuka ulang — inilah sebab utama "tidak tersave".
+            function setDbSyncStatus(isOnline, label) {
+                const badge = document.getElementById('db-sync-badge');
+                const text = document.getElementById('db-sync-text');
+                if (!badge || !text) return;
+                badge.classList.toggle('online', isOnline);
+                badge.classList.toggle('offline', !isOnline);
+                text.textContent = label || (isOnline ? 'Database Sinkron (Online)' : 'Database Offline');
+            }
+
             function setupFirestoreSync() {
-                if (!(window.firebaseApp && window.firebaseApp.db && window.firebaseApp.onSnapshot && window.firebaseApp.collection)) return;
+                if (!(window.firebaseApp && window.firebaseApp.db && window.firebaseApp.onSnapshot && window.firebaseApp.collection)) {
+                    setDbSyncStatus(false, 'Database Offline (Mode Lokal)');
+                    return;
+                }
                 const { db, appId, collection, onSnapshot } = window.firebaseApp;
                 const colRef = collection(db, `artifacts/${appId}/public/data/cadastre_features`);
                 onSnapshot(colRef, (snapshot) => {
@@ -1514,12 +1577,14 @@
                         }
                     });
                     refreshCadastreSource();
+                    setDbSyncStatus(true, 'Database Sinkron (Online)');
                 }, (err) => {
                     // Penyebab paling umum: (1) ad-blocker/ekstensi browser memblokir domain
                     // firestore.googleapis.com (net::ERR_BLOCKED_BY_CLIENT), atau (2) rules
                     // Firestore menolak akses karena sesi auth (anonim/login) belum tersedia.
                     console.warn('Gagal sinkronisasi realtime dari Firestore (cek ad-blocker browser & rules Firestore Anda):', err);
                     showAlert('Gagal memuat data tersimpan dari server. Jika Anda memakai ad-blocker, coba nonaktifkan untuk domain ini, atau periksa izin/rules Firestore.', 'fa-triangle-exclamation', '#f43f5e');
+                    setDbSyncStatus(false, 'Database Offline (Gagal Sinkron)');
                 });
             }
 
@@ -1556,15 +1621,12 @@
                     source: 'cadastre-source',
                     filter: ['==', ['get', 'category'], 'bidang'],
                     paint: {
-                        'fill-color': [
-                            'match', ['get', 'zona'],
-                            'Komersial', '#f59e0b',
-                            'Permukiman', '#0284c7',
-                            'Industri', '#a855f7',
-                            'Fasilitas Umum', '#10b981',
-                            '#0284c7'
-                        ],
-                        'fill-opacity': 0.4
+                        // Bidang sengaja tidak diberi warna di tengah (hanya outline) — lihat
+                        // layer 'cadastre-line' di bawah untuk warna sesuai peruntukan/zona.
+                        // fill-opacity tetap kecil (bukan 0 murni) supaya area bidang tetap
+                        // dapat di-klik/dipilih via queryRenderedFeatures.
+                        'fill-color': '#000000',
+                        'fill-opacity': 0.01
                     }
                 });
 
@@ -1573,7 +1635,19 @@
                     type: 'line',
                     source: 'cadastre-source',
                     filter: ['==', ['get', 'category'], 'bidang'],
-                    paint: { 'line-color': '#38bdf8', 'line-width': 1.5 }
+                    paint: {
+                        // Warna outline bidang mengikuti peruntukan/fungsi zona (Perda No. 4/2021).
+                        // Zona yang belum diisi / tidak dikenali -> abu-abu (belum ada data).
+                        'line-color': [
+                            'match', ['get', 'zona'],
+                            'Komersial', '#f59e0b',
+                            'Permukiman', '#0284c7',
+                            'Industri', '#a855f7',
+                            'Fasilitas Umum', '#10b981',
+                            '#6b7280'
+                        ],
+                        'line-width': 2.5
+                    }
                 });
 
                 map.addLayer({
@@ -1598,7 +1672,7 @@
                             'Puskesmas / Kesehatan', '#f43f5e',
                             'Kantor Pemerintahan', '#10b981',
                             'Infrastruktur Umum', '#94a3b8',
-                            '#38bdf8'
+                            '#6b7280'
                         ],
                         'fill-extrusion-height': ['coalesce', ['get', 'height'], 6],
                         'fill-extrusion-base': ['coalesce', ['get', 'base_height'], 0],

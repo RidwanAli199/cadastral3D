@@ -665,7 +665,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'cadastral-webgis-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
@@ -683,7 +683,7 @@
         const db = getFirestore(app);
 
         window.firebaseApp = { 
-            app, auth, db, appId, setDoc, deleteDoc, doc, collection, onSnapshot,
+            app, auth, db, appId, setDoc, deleteDoc, doc, collection, onSnapshot, getDocs,
             signInWithEmailAndPassword, signOut, onAuthStateChanged 
         };
 
@@ -1472,6 +1472,48 @@
             // simpan / import bisa langsung memberi tahu pengguna jika perubahan TIDAK benar-benar
             // tersimpan ke server (mis. Firestore Security Rules menolak write) -- sebelumnya
             // kegagalan semacam ini baru terlihat setelah pengguna refresh halaman dan data hilang.
+            // Struktur Firestore dipisah per SUMBER + KATEGORI:
+            // - Data hasil IMPORT file (SHP/GeoJSON) masuk ke tabel "cadastre_import_<kategori>"
+            //   (bidang, bangunan, jalan, aoi).
+            // - Data hasil GAMBAR MANUAL (digitasi) di peta masuk ke tabel
+            //   "cadastre_gambar_<kategori>" (bidang, bangunan, jalan, dan kategori lain
+            //   yang mungkin ada di webgis ke depannya lewat collection cadangan).
+            // Sumber diambil dari properties.sumber tiap fitur ('import' vs 'digitasi'/lainnya).
+            const IMPORT_CATEGORY_COLLECTION_MAP = {
+                bidang: 'cadastre_import_bidang',
+                bangunan: 'cadastre_import_bangunan',
+                jalan: 'cadastre_import_jalan',
+                aoi: 'cadastre_import_aoi'
+            };
+            const GAMBAR_CATEGORY_COLLECTION_MAP = {
+                bidang: 'cadastre_gambar_bidang',
+                bangunan: 'cadastre_gambar_bangunan',
+                jalan: 'cadastre_gambar_jalan'
+            };
+            const IMPORT_FALLBACK_COLLECTION = 'cadastre_import_lainnya';
+            const GAMBAR_FALLBACK_COLLECTION = 'cadastre_gambar_lainnya';
+            // Semua collection final yang perlu didengarkan realtime oleh setupFirestoreSync().
+            const ALL_FEATURE_COLLECTIONS = [
+                ...Object.values(IMPORT_CATEGORY_COLLECTION_MAP), IMPORT_FALLBACK_COLLECTION,
+                ...Object.values(GAMBAR_CATEGORY_COLLECTION_MAP), GAMBAR_FALLBACK_COLLECTION
+            ];
+            // Struktur-struktur lama (sebelum dipisah per sumber+kategori) yang perlu
+            // dimigrasikan otomatis setiap kali aplikasi dibuka.
+            const LEGACY_SOURCE_COLLECTIONS = [
+                'cadastre_features',   // struktur paling lama: 1 collection tunggal untuk semua data
+                'cadastre_bidang', 'cadastre_bangunan', 'cadastre_jalan', 'cadastre_aoi' // struktur sebelumnya: per kategori saja (tanpa pemisahan sumber)
+            ];
+
+            // Fitur tanpa 'sumber' (mis. data sangat lama sebelum field ini ada) dianggap
+            // sebagai hasil gambar manual, karena tabel "gambar" berfungsi sebagai bucket
+            // umum ("dan lainnya") untuk kategori/​sumber yang tidak dikenali.
+            function getFeatureCollectionName(category, sumber) {
+                if (sumber === 'import') {
+                    return IMPORT_CATEGORY_COLLECTION_MAP[category] || IMPORT_FALLBACK_COLLECTION;
+                }
+                return GAMBAR_CATEGORY_COLLECTION_MAP[category] || GAMBAR_FALLBACK_COLLECTION;
+            }
+
             async function persistFeature(feature) {
                 if (!(window.firebaseApp && window.firebaseApp.db)) {
                     return { ok: false, reason: 'firebase-unavailable' };
@@ -1481,7 +1523,8 @@
                 }
                 try {
                     const { db, appId, doc, setDoc } = window.firebaseApp;
-                    const ref = doc(db, `artifacts/${appId}/public/data/cadastre_features`, feature.properties.id);
+                    const colName = getFeatureCollectionName(feature.properties.category, feature.properties.sumber);
+                    const ref = doc(db, `artifacts/${appId}/public/data/${colName}`, feature.properties.id);
                     // Firestore tidak mendukung array bersarang (nested arrays), sedangkan
                     // geometry GeoJSON (mis. Polygon coordinates) adalah array di dalam array.
                     // Solusinya: simpan feature sebagai string JSON di satu field, bukan
@@ -1494,7 +1537,7 @@
                 }
             }
 
-            async function removeFeatureRemote(id) {
+            async function removeFeatureRemote(id, category, sumber) {
                 if (!(window.firebaseApp && window.firebaseApp.db)) {
                     return { ok: false, reason: 'firebase-unavailable' };
                 }
@@ -1503,12 +1546,67 @@
                 }
                 try {
                     const { db, appId, doc, deleteDoc } = window.firebaseApp;
-                    const ref = doc(db, `artifacts/${appId}/public/data/cadastre_features`, id);
+                    const colName = getFeatureCollectionName(category, sumber);
+                    const ref = doc(db, `artifacts/${appId}/public/data/${colName}`, id);
                     await deleteDoc(ref);
                     return { ok: true };
                 } catch (err) {
                     console.warn('Gagal hapus data di Firestore:', err);
                     return { ok: false, reason: (err && err.code) || 'unknown', message: err && err.message };
+                }
+            }
+
+            // Migrasi otomatis: data yang masih tersimpan pada struktur collection lama
+            // (baik struktur paling awal "cadastre_features", maupun struktur sebelumnya
+            // yang hanya dipisah per kategori tanpa sumber) dipindahkan ke collection baru
+            // sesuai sumber+kategori setiap kali aplikasi dibuka. Proses ini berjalan sekali
+            // (idempotent secara alami): dokumen lama dihapus setelah berhasil disalin,
+            // sehingga pada pembukaan aplikasi berikutnya collection lama sudah kosong.
+            async function migrateLegacyFeatureCollection() {
+                if (!(window.firebaseApp && window.firebaseApp.db && window.firebaseApp.collection &&
+                      window.firebaseApp.getDocs && window.firebaseApp.doc &&
+                      window.firebaseApp.setDoc && window.firebaseApp.deleteDoc)) {
+                    return;
+                }
+                const { db, appId, collection, getDocs, doc, setDoc, deleteDoc } = window.firebaseApp;
+
+                for (const legacyColName of LEGACY_SOURCE_COLLECTIONS) {
+                    try {
+                        const legacyColRef = collection(db, `artifacts/${appId}/public/data/${legacyColName}`);
+                        const snapshot = await getDocs(legacyColRef);
+                        if (snapshot.empty) continue;
+
+                        let migrated = 0;
+                        let failed = 0;
+                        for (const legacyDoc of snapshot.docs) {
+                            try {
+                                const raw = legacyDoc.data();
+                                const feature = raw && raw.json ? JSON.parse(raw.json) : raw;
+                                const category = feature && feature.properties ? feature.properties.category : null;
+                                const sumber = feature && feature.properties ? feature.properties.sumber : null;
+                                const colName = getFeatureCollectionName(category, sumber);
+                                const newRef = doc(db, `artifacts/${appId}/public/data/${colName}`, legacyDoc.id);
+                                await setDoc(newRef, { id: legacyDoc.id, json: JSON.stringify(feature) }, { merge: false });
+                                await deleteDoc(legacyDoc.ref);
+                                migrated++;
+                            } catch (err) {
+                                failed++;
+                                console.warn(`Gagal migrasi 1 data lama dari ${legacyColName} ke collection baru sumber+kategori:`, legacyDoc.id, err);
+                            }
+                        }
+
+                        if (migrated > 0) {
+                            console.info(`Migrasi otomatis: ${migrated} data lama dari "${legacyColName}" berhasil dipindahkan ke collection baru sumber+kategori.`);
+                        }
+                        if (failed > 0) {
+                            console.warn(`Migrasi otomatis: ${failed} data lama dari "${legacyColName}" GAGAL dipindahkan (kemungkinan izin/rules Firestore belum mengizinkan tulis untuk sesi ini).`);
+                        }
+                    } catch (err) {
+                        // Wajar terjadi jika sesi saat ini (mis. publik/anonim) tidak memiliki izin
+                        // baca/tulis ke collection lama menurut Firestore Security Rules -- migrasi
+                        // akan dicoba lagi otomatis pada pembukaan aplikasi berikutnya.
+                        console.warn(`Gagal membaca collection lama "${legacyColName}" untuk migrasi otomatis:`, err);
+                    }
                 }
             }
 
@@ -1547,13 +1645,13 @@
                 text.textContent = label || (isOnline ? 'Database Sinkron (Online)' : 'Database Offline');
             }
 
-            function setupFirestoreSync() {
-                if (!(window.firebaseApp && window.firebaseApp.db && window.firebaseApp.onSnapshot && window.firebaseApp.collection)) {
-                    setDbSyncStatus(false, 'Database Offline (Mode Lokal)');
-                    return;
-                }
+            // Berlangganan realtime ke 1 collection tertentu (mis. cadastre_import_bidang
+            // atau cadastre_gambar_jalan). Dipakai oleh setupFirestoreSync() untuk membuka
+            // listener terpisah per collection, sesuai struktur data yang kini dipisah
+            // per sumber (import/gambar) + kategori.
+            function subscribeFeatureCollection(colName) {
                 const { db, appId, collection, onSnapshot } = window.firebaseApp;
-                const colRef = collection(db, `artifacts/${appId}/public/data/cadastre_features`);
+                const colRef = collection(db, `artifacts/${appId}/public/data/${colName}`);
                 onSnapshot(colRef, (snapshot) => {
                     snapshot.docChanges().forEach((change) => {
                         const raw = change.doc.data();
@@ -1582,10 +1680,19 @@
                     // Penyebab paling umum: (1) ad-blocker/ekstensi browser memblokir domain
                     // firestore.googleapis.com (net::ERR_BLOCKED_BY_CLIENT), atau (2) rules
                     // Firestore menolak akses karena sesi auth (anonim/login) belum tersedia.
-                    console.warn('Gagal sinkronisasi realtime dari Firestore (cek ad-blocker browser & rules Firestore Anda):', err);
+                    console.warn(`Gagal sinkronisasi realtime dari Firestore (koleksi ${colName}) (cek ad-blocker browser & rules Firestore Anda):`, err);
                     showAlert('Gagal memuat data tersimpan dari server. Jika Anda memakai ad-blocker, coba nonaktifkan untuk domain ini, atau periksa izin/rules Firestore.', 'fa-triangle-exclamation', '#f43f5e');
                     setDbSyncStatus(false, 'Database Offline (Gagal Sinkron)');
                 });
+            }
+
+            function setupFirestoreSync() {
+                if (!(window.firebaseApp && window.firebaseApp.db && window.firebaseApp.onSnapshot && window.firebaseApp.collection)) {
+                    setDbSyncStatus(false, 'Database Offline (Mode Lokal)');
+                    return;
+                }
+                // 1 collection tersendiri per sumber (import/gambar) + kategori.
+                ALL_FEATURE_COLLECTIONS.forEach(colName => subscribeFeatureCollection(colName));
             }
 
             function refreshCadastreSource() {
@@ -1870,6 +1977,10 @@
 
                 showConfirm(`Anda yakin ingin menghapus ${targets.length} fitur pada area terpilih ini secara massal?`, async () => {
                     const idsToDelete = new Set(targets.map(t => t.properties.id));
+                    // Simpan kategori & sumber tiap id sebelum dihapus dari cadastreData, karena
+                    // penghapusan di Firestore kini perlu tahu collection sumber+kategori mana yang dituju.
+                    const categoryById = new Map(targets.map(t => [t.properties.id, t.properties.category]));
+                    const sumberById = new Map(targets.map(t => [t.properties.id, t.properties.sumber]));
                     cadastreData.features = cadastreData.features.filter(f => !idsToDelete.has(f.properties.id));
                     refreshCadastreSource();
                     window.closeAllAttrPanels();
@@ -1882,7 +1993,7 @@
                     const BATCH_SIZE = 25;
                     for (let i = 0; i < idsArray.length; i += BATCH_SIZE) {
                         const batch = idsArray.slice(i, i + BATCH_SIZE);
-                        const results = await Promise.all(batch.map(id => removeFeatureRemote(id)));
+                        const results = await Promise.all(batch.map(id => removeFeatureRemote(id, categoryById.get(id), sumberById.get(id))));
                         results.forEach(r => { if (!r.ok) { failedCount++; lastFailReason = r.reason || lastFailReason; } });
                     }
 
@@ -2052,12 +2163,13 @@
                 document.getElementById('btn-delete-bidang').addEventListener('click', () => {
                     if (!selectedFeature) return;
                     const id = selectedFeature.properties.id;
+                    const sumber = selectedFeature.properties.sumber;
                     showConfirm('Apakah Anda yakin ingin menghapus bidang tanah ini beserta atributnya?', async () => {
                         cadastreData.features = cadastreData.features.filter(f => f.properties.id !== id);
                         refreshCadastreSource();
                         window.closeAllAttrPanels();
                         selectedFeature = null;
-                        const result = await removeFeatureRemote(id);
+                        const result = await removeFeatureRemote(id, 'bidang', sumber);
                         notifyPersistResult(result, 'Bidang tanah berhasil dihapus dari server.');
                     });
                 });
@@ -2087,12 +2199,13 @@
                 document.getElementById('btn-delete-bgn').addEventListener('click', () => {
                     if (!selectedFeature) return;
                     const id = selectedFeature.properties.id;
+                    const sumber = selectedFeature.properties.sumber;
                     showConfirm('Apakah Anda yakin ingin menghapus bangunan 3D ini?', async () => {
                         cadastreData.features = cadastreData.features.filter(f => f.properties.id !== id);
                         refreshCadastreSource();
                         window.closeAllAttrPanels();
                         selectedFeature = null;
-                        const result = await removeFeatureRemote(id);
+                        const result = await removeFeatureRemote(id, 'bangunan', sumber);
                         notifyPersistResult(result, 'Bangunan berhasil dihapus dari server.');
                     });
                 });
@@ -2123,12 +2236,13 @@
                 document.getElementById('btn-delete-jalan').addEventListener('click', () => {
                     if (!selectedFeature) return;
                     const id = selectedFeature.properties.id;
+                    const sumber = selectedFeature.properties.sumber;
                     showConfirm('Apakah Anda yakin ingin menghapus ruas jalan ini?', async () => {
                         cadastreData.features = cadastreData.features.filter(f => f.properties.id !== id);
                         refreshCadastreSource();
                         window.closeAllAttrPanels();
                         selectedFeature = null;
-                        const result = await removeFeatureRemote(id);
+                        const result = await removeFeatureRemote(id, 'jalan', sumber);
                         notifyPersistResult(result, 'Data jalan berhasil dihapus dari server.');
                     });
                 });
@@ -2670,6 +2784,7 @@
 
             map.on('load', () => {
                 initMapLayers();
+                migrateLegacyFeatureCollection();
                 setupFirestoreSync();
                 setupCameraControls();
                 setupAuth();

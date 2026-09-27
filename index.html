@@ -659,12 +659,12 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'cadastral-webgis-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyBLDA0LYBHuvkgriAesLuN4m1IAUXxdREs",
-        authDomain: "kadaster3d-553f7.firebaseapp.com",
-        projectId: "kadaster3d-553f7",
-        storageBucket: "kadaster3d-553f7.firebasestorage.app",
-        messagingSenderId: "863734518019",
-        appId: "1:863734518019:web:d0fda497276cb0b2785936",
-        measurementId: "G-HYZTV95W5T"
+          authDomain: "kadaster3d-553f7.firebaseapp.com",
+          projectId: "kadaster3d-553f7",
+          storageBucket: "kadaster3d-553f7.firebasestorage.app",
+          messagingSenderId: "863734518019",
+          appId: "1:863734518019:web:d0fda497276cb0b2785936",
+          measurementId: "G-HYZTV95W5T"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -1416,32 +1416,70 @@
                 }
             }
 
+            // Mengembalikan status simpan secara EKSPLISIT ({ok:true} atau {ok:false, reason}),
+            // alih-alih gagal secara diam-diam (hanya console.warn). Ini penting supaya form
+            // simpan / import bisa langsung memberi tahu pengguna jika perubahan TIDAK benar-benar
+            // tersimpan ke server (mis. Firestore Security Rules menolak write) -- sebelumnya
+            // kegagalan semacam ini baru terlihat setelah pengguna refresh halaman dan data hilang.
             async function persistFeature(feature) {
+                if (!(window.firebaseApp && window.firebaseApp.db)) {
+                    return { ok: false, reason: 'firebase-unavailable' };
+                }
+                if (!currentUser) {
+                    return { ok: false, reason: 'not-authenticated' };
+                }
                 try {
-                    if (window.firebaseApp && window.firebaseApp.db && currentUser) {
-                        const { db, appId, doc, setDoc } = window.firebaseApp;
-                        const ref = doc(db, `artifacts/${appId}/public/data/cadastre_features`, feature.properties.id);
-                        // Firestore tidak mendukung array bersarang (nested arrays), sedangkan
-                        // geometry GeoJSON (mis. Polygon coordinates) adalah array di dalam array.
-                        // Solusinya: simpan feature sebagai string JSON di satu field, bukan
-                        // sebagai objek GeoJSON langsung.
-                        await setDoc(ref, { id: feature.properties.id, json: JSON.stringify(feature) }, { merge: false });
-                    }
+                    const { db, appId, doc, setDoc } = window.firebaseApp;
+                    const ref = doc(db, `artifacts/${appId}/public/data/cadastre_features`, feature.properties.id);
+                    // Firestore tidak mendukung array bersarang (nested arrays), sedangkan
+                    // geometry GeoJSON (mis. Polygon coordinates) adalah array di dalam array.
+                    // Solusinya: simpan feature sebagai string JSON di satu field, bukan
+                    // sebagai objek GeoJSON langsung.
+                    await setDoc(ref, { id: feature.properties.id, json: JSON.stringify(feature) }, { merge: false });
+                    return { ok: true };
                 } catch (err) {
                     console.warn('Gagal sinkronisasi ke Firestore:', err);
+                    return { ok: false, reason: (err && err.code) || 'unknown', message: err && err.message };
                 }
             }
 
             async function removeFeatureRemote(id) {
+                if (!(window.firebaseApp && window.firebaseApp.db)) {
+                    return { ok: false, reason: 'firebase-unavailable' };
+                }
+                if (!currentUser) {
+                    return { ok: false, reason: 'not-authenticated' };
+                }
                 try {
-                    if (window.firebaseApp && window.firebaseApp.db && currentUser) {
-                        const { db, appId, doc, deleteDoc } = window.firebaseApp;
-                        const ref = doc(db, `artifacts/${appId}/public/data/cadastre_features`, id);
-                        await deleteDoc(ref);
-                    }
+                    const { db, appId, doc, deleteDoc } = window.firebaseApp;
+                    const ref = doc(db, `artifacts/${appId}/public/data/cadastre_features`, id);
+                    await deleteDoc(ref);
+                    return { ok: true };
                 } catch (err) {
                     console.warn('Gagal hapus data di Firestore:', err);
+                    return { ok: false, reason: (err && err.code) || 'unknown', message: err && err.message };
                 }
+            }
+
+            // Menampilkan alert yang jelas berdasarkan hasil persistFeature/removeFeatureRemote,
+            // supaya pengguna langsung tahu jika perubahan HANYA tersimpan sementara di layar
+            // (dan akan hilang saat refresh) beserta alasannya, alih-alih menemukan ini sendiri.
+            function notifyPersistResult(result, successMsg) {
+                if (result.ok) {
+                    showAlert(successMsg, 'fa-circle-check', '#10b981');
+                    return;
+                }
+                let detail;
+                if (result.reason === 'not-authenticated') {
+                    detail = 'sesi login Admin tidak terdeteksi (silakan login ulang)';
+                } else if (result.reason === 'permission-denied') {
+                    detail = 'akses ditolak oleh Firestore Security Rules (periksa rules Firestore Anda agar mengizinkan write untuk user terautentikasi)';
+                } else if (result.reason === 'firebase-unavailable') {
+                    detail = 'koneksi ke Firebase tidak tersedia';
+                } else {
+                    detail = result.message || result.reason || 'penyebab tidak diketahui';
+                }
+                showAlert(`GAGAL disimpan ke server: ${detail}. Perubahan hanya tersimpan sementara di layar Anda dan akan HILANG saat halaman di-refresh.`, 'fa-triangle-exclamation', '#f43f5e');
             }
 
             // Membaca kembali data yang tersimpan di Firestore secara realtime, lalu
@@ -1756,13 +1794,31 @@
                     return;
                 }
 
-                showConfirm(`Anda yakin ingin menghapus ${targets.length} fitur pada area terpilih ini secara massal?`, () => {
+                showConfirm(`Anda yakin ingin menghapus ${targets.length} fitur pada area terpilih ini secara massal?`, async () => {
                     const idsToDelete = new Set(targets.map(t => t.properties.id));
                     cadastreData.features = cadastreData.features.filter(f => !idsToDelete.has(f.properties.id));
-                    targets.forEach(t => removeFeatureRemote(t.properties.id));
                     refreshCadastreSource();
                     window.closeAllAttrPanels();
-                    showAlert(`${targets.length} fitur berhasil dihapus secara massal.`, 'fa-circle-check', '#10b981');
+
+                    // Hapus di server per-batch (bukan sekaligus ribuan request) & hitung yang gagal,
+                    // supaya pengguna tahu jika sebagian penghapusan tidak benar-benar tersimpan ke server.
+                    let failedCount = 0;
+                    let lastFailReason = null;
+                    const idsArray = Array.from(idsToDelete);
+                    const BATCH_SIZE = 25;
+                    for (let i = 0; i < idsArray.length; i += BATCH_SIZE) {
+                        const batch = idsArray.slice(i, i + BATCH_SIZE);
+                        const results = await Promise.all(batch.map(id => removeFeatureRemote(id)));
+                        results.forEach(r => { if (!r.ok) { failedCount++; lastFailReason = r.reason || lastFailReason; } });
+                    }
+
+                    if (failedCount === 0) {
+                        showAlert(`${targets.length} fitur berhasil dihapus secara massal dari server.`, 'fa-circle-check', '#10b981');
+                    } else {
+                        showAlert(`${targets.length} fitur dihapus dari layar, namun ${failedCount} di antaranya GAGAL dihapus dari server` +
+                            (lastFailReason ? ` (penyebab: ${lastFailReason})` : '') +
+                            `. Fitur tersebut bisa muncul kembali saat refresh.`, 'fa-triangle-exclamation', '#f43f5e');
+                    }
                 });
             }
 
@@ -1903,7 +1959,7 @@
                     }
                 });
 
-                document.getElementById('btn-save-bidang').addEventListener('click', () => {
+                document.getElementById('btn-save-bidang').addEventListener('click', async () => {
                     if (!selectedFeature) return;
                     const f = findFeatureById(selectedFeature.properties.id);
                     if (!f) return;
@@ -1915,27 +1971,27 @@
                     selectedFeature = f;
                     refreshCadastreSource();
                     renderBidangCompliance(f);
-                    persistFeature(f);
-                    showAlert('Data bidang tanah berhasil disimpan.', 'fa-circle-check', '#10b981');
+                    const result = await persistFeature(f);
+                    notifyPersistResult(result, 'Data bidang tanah berhasil disimpan ke server.');
                 });
 
                 document.getElementById('btn-delete-bidang').addEventListener('click', () => {
                     if (!selectedFeature) return;
                     const id = selectedFeature.properties.id;
-                    showConfirm('Apakah Anda yakin ingin menghapus bidang tanah ini beserta atributnya?', () => {
+                    showConfirm('Apakah Anda yakin ingin menghapus bidang tanah ini beserta atributnya?', async () => {
                         cadastreData.features = cadastreData.features.filter(f => f.properties.id !== id);
-                        removeFeatureRemote(id);
                         refreshCadastreSource();
                         window.closeAllAttrPanels();
                         selectedFeature = null;
-                        showAlert('Bidang tanah berhasil dihapus.', 'fa-circle-check', '#10b981');
+                        const result = await removeFeatureRemote(id);
+                        notifyPersistResult(result, 'Bidang tanah berhasil dihapus dari server.');
                     });
                 });
 
                 document.getElementById('attr-bgn-lantai').addEventListener('input', calcBangunanNJOP);
                 document.getElementById('attr-bgn-fungsi').addEventListener('change', calcBangunanNJOP);
 
-                document.getElementById('btn-save-bgn').addEventListener('click', () => {
+                document.getElementById('btn-save-bgn').addEventListener('click', async () => {
                     if (!selectedFeature) return;
                     const f = findFeatureById(selectedFeature.properties.id);
                     if (!f) return;
@@ -1950,20 +2006,20 @@
 
                     selectedFeature = f;
                     refreshCadastreSource();
-                    persistFeature(f);
-                    showAlert('Data bangunan berhasil disimpan.', 'fa-circle-check', '#10b981');
+                    const result = await persistFeature(f);
+                    notifyPersistResult(result, 'Data bangunan berhasil disimpan ke server.');
                 });
 
                 document.getElementById('btn-delete-bgn').addEventListener('click', () => {
                     if (!selectedFeature) return;
                     const id = selectedFeature.properties.id;
-                    showConfirm('Apakah Anda yakin ingin menghapus bangunan 3D ini?', () => {
+                    showConfirm('Apakah Anda yakin ingin menghapus bangunan 3D ini?', async () => {
                         cadastreData.features = cadastreData.features.filter(f => f.properties.id !== id);
-                        removeFeatureRemote(id);
                         refreshCadastreSource();
                         window.closeAllAttrPanels();
                         selectedFeature = null;
-                        showAlert('Bangunan berhasil dihapus.', 'fa-circle-check', '#10b981');
+                        const result = await removeFeatureRemote(id);
+                        notifyPersistResult(result, 'Bangunan berhasil dihapus dari server.');
                     });
                 });
 
@@ -1974,7 +2030,7 @@
                     renderJalanInfo(selectedFeature, len);
                 });
 
-                document.getElementById('btn-save-jalan').addEventListener('click', () => {
+                document.getElementById('btn-save-jalan').addEventListener('click', async () => {
                     if (!selectedFeature) return;
                     const f = findFeatureById(selectedFeature.properties.id);
                     if (!f) return;
@@ -1986,20 +2042,20 @@
 
                     selectedFeature = f;
                     refreshCadastreSource();
-                    persistFeature(f);
-                    showAlert('Data jalan berhasil disimpan.', 'fa-circle-check', '#10b981');
+                    const result = await persistFeature(f);
+                    notifyPersistResult(result, 'Data jalan berhasil disimpan ke server.');
                 });
 
                 document.getElementById('btn-delete-jalan').addEventListener('click', () => {
                     if (!selectedFeature) return;
                     const id = selectedFeature.properties.id;
-                    showConfirm('Apakah Anda yakin ingin menghapus ruas jalan ini?', () => {
+                    showConfirm('Apakah Anda yakin ingin menghapus ruas jalan ini?', async () => {
                         cadastreData.features = cadastreData.features.filter(f => f.properties.id !== id);
-                        removeFeatureRemote(id);
                         refreshCadastreSource();
                         window.closeAllAttrPanels();
                         selectedFeature = null;
-                        showAlert('Data jalan berhasil dihapus.', 'fa-circle-check', '#10b981');
+                        const result = await removeFeatureRemote(id);
+                        notifyPersistResult(result, 'Data jalan berhasil dihapus dari server.');
                     });
                 });
             }
@@ -2309,6 +2365,7 @@
                     let forcedRoadCount = 0;
                     let mappedAttrCount = 0;
                     let autoNibCount = 0;
+                    const importedFeatures = [];
 
                     feats.forEach((f, idx) => {
                         const rawProps = f.properties || {};
@@ -2360,10 +2417,55 @@
                         }
 
                         cadastreData.features.push(f);
-                        persistFeature(f);
+                        importedFeatures.push(f);
                     });
 
+                    // Tampilkan hasil import ke peta SEGERA (tidak menunggu proses simpan ke
+                    // Firestore selesai), supaya pengguna langsung melihat datanya di layar.
                     refreshCadastreSource();
+
+                    // Otomatis terbang ke lokasi (bounding box) data yang baru diimpor. Ini juga
+                    // berfungsi sebagai diagnostik: jika bbox berada di luar rentang lon/lat yang
+                    // valid, berarti file SHP sumber kemungkinan memakai sistem koordinat/proyeksi
+                    // selain WGS84 (mis. UTM) dan tidak berhasil dikonversi otomatis (biasanya
+                    // karena file .prj tidak ada/tidak dikenali di dalam ZIP) — inilah penyebab
+                    // paling umum data "tidak muncul di peta" walau berhasil diimpor ke memori.
+                    let bboxWarning = '';
+                    try {
+                        const fc = { type: 'FeatureCollection', features: importedFeatures };
+                        const bbox = turf.bbox(fc);
+                        const [minX, minY, maxX, maxY] = bbox;
+                        const isValidLngLat = [minX, minY, maxX, maxY].every(Number.isFinite) &&
+                            minX >= -180 && maxX <= 180 && minY >= -90 && maxY <= 90;
+                        if (isValidLngLat) {
+                            map.fitBounds([[minX, minY], [maxX, maxY]], { padding: 60, duration: 1000, maxZoom: 19 });
+                        } else {
+                            bboxWarning = ' PERINGATAN: koordinat data hasil import berada di luar rentang lon/lat yang ' +
+                                'valid (kemungkinan file SHP memakai sistem koordinat/proyeksi selain WGS84, misalnya ' +
+                                'UTM, dan file .prj tidak terbaca). Data tersimpan namun tidak akan terlihat di lokasi ' +
+                                'yang benar di peta. Pastikan file .prj disertakan dalam ZIP, atau konversi data ke ' +
+                                'EPSG:4326 (WGS84) sebelum diimpor.';
+                        }
+                    } catch (err) {
+                        console.warn('Gagal menghitung bounding box data hasil import:', err);
+                    }
+
+                    // Simpan setiap fitur ke Firestore secara bertahap per-batch (bukan ribuan
+                    // request sekaligus yang rawan gagal/timeout), sambil menghitung berapa yang
+                    // benar-benar berhasil vs gagal, supaya kegagalan simpan langsung dilaporkan
+                    // ke pengguna -- bukan baru terasa setelah halaman di-refresh dan data hilang.
+                    let savedCount = 0;
+                    let failedCount = 0;
+                    let lastFailReason = null;
+                    const BATCH_SIZE = 25;
+                    for (let i = 0; i < importedFeatures.length; i += BATCH_SIZE) {
+                        const batch = importedFeatures.slice(i, i + BATCH_SIZE);
+                        const results = await Promise.all(batch.map(bf => persistFeature(bf)));
+                        results.forEach(r => {
+                            if (r.ok) savedCount++;
+                            else { failedCount++; lastFailReason = r.reason || lastFailReason; }
+                        });
+                    }
 
                     let msg = `${feats.length} fitur berhasil diimpor ke peta.`;
                     if (mappedAttrCount > 0) {
@@ -2375,7 +2477,16 @@
                     if (autoNibCount > 0) {
                         msg += ` ${autoNibCount} fitur tidak memiliki NIB pada data asal sehingga NIB dibuatkan otomatis oleh sistem.`;
                     }
-                    showAlert(msg, 'fa-circle-check', '#10b981');
+
+                    if (failedCount === 0) {
+                        msg += ' Seluruh data berhasil disimpan permanen ke server (Firestore).';
+                        showAlert(msg + bboxWarning, 'fa-circle-check', bboxWarning ? '#f59e0b' : '#10b981');
+                    } else {
+                        msg += ` PERINGATAN: ${failedCount} dari ${feats.length} fitur GAGAL disimpan ke server` +
+                            (lastFailReason ? ` (penyebab: ${lastFailReason})` : '') +
+                            '. Fitur tersebut hanya tersimpan sementara di layar Anda dan akan HILANG saat halaman di-refresh.';
+                        showAlert(msg + bboxWarning, 'fa-triangle-exclamation', '#f43f5e');
+                    }
                 } catch (err) {
                     console.error(err);
                     showAlert('Gagal mengimpor file: ' + (err.message || 'Format file tidak didukung.'), 'fa-triangle-exclamation', '#f43f5e');

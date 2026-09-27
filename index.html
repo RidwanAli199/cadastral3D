@@ -1989,7 +1989,24 @@
                     filter: ['all', ['==', ['get', 'category'], 'bidang'], ['in', ['get', 'id'], ['literal', []]]],
                     layout: {
                         'icon-image': 'violation-icon',
-                        'icon-size': 0.5,
+                        // Ikon ini dibuat dari canvas berukuran TETAP (48x48 px). MapLibre/Mapbox
+                        // menggambar ikon simbol dalam ukuran piksel LAYAR yang tetap, TIDAK ikut
+                        // mengecil saat peta di-zoom out seperti halnya bidang/bangunan (yang
+                        // ukurannya memang berbasis koordinat peta, jadi otomatis mengecil).
+                        // Akibatnya, saat zoom out & banyak bidang melanggar berdekatan, ratusan
+                        // ikon berukuran sama besar saling tumpang tindih dan terlihat "membesar"/
+                        // penuh sesak. Di sini ukurannya dibuat mengikuti level zoom (kecil saat
+                        // zoom jauh, normal saat zoom dekat) supaya tetap enak dilihat di semua
+                        // level zoom, tanpa menghilangkan satupun tanda (semua tetap ada & tetap
+                        // bisa diklik, hanya lebih kecil saat peta di-zoom out).
+                        'icon-size': [
+                            'interpolate', ['linear'], ['zoom'],
+                            10, 0.12,
+                            13, 0.22,
+                            15, 0.35,
+                            17, 0.5,
+                            19, 0.65
+                        ],
                         'icon-allow-overlap': true,
                         'icon-ignore-placement': true,
                         // Disembunyikan secara default -- hanya dimunculkan saat pengguna menekan
@@ -2002,13 +2019,27 @@
                 updateStats();
             }
 
+            // Ikon peringatan "!" berukuran kecil di layar (~24px), sehingga klik yang
+            // meleset beberapa piksel dari pusat ikon akan dianggap "tidak kena apa-apa"
+            // oleh queryRenderedFeatures (klik titik tunggal butuh presisi tinggi). Fungsi
+            // ini membuat kotak toleransi (bounding box) beberapa piksel di sekeliling titik
+            // klik/hover, supaya sedikit meleset tetap terdeteksi mengenai ikonnya.
+            function hitBoxAround(point, tolerancePx) {
+                return [
+                    [point.x - tolerancePx, point.y - tolerancePx],
+                    [point.x + tolerancePx, point.y + tolerancePx]
+                ];
+            }
+
             function setupInteractions() {
                 map.on('click', (e) => {
                     if (isMeasurementMode || (activeDrawType && activeDrawType !== null)) return;
 
-                    const violFeatures = map.queryRenderedFeatures(e.point, { layers: ['cadastre-violation-marker'] });
+                    const violFeatures = map.queryRenderedFeatures(hitBoxAround(e.point, 8), { layers: ['cadastre-violation-marker'] });
                     if (violFeatures.length) {
-                        const bidang = findFeatureById(violFeatures[0].properties.id);
+                        const clickedId = violFeatures[0].properties.id;
+                        const bidang = findFeatureById(clickedId) ||
+                            cadastreData.features.find(f => f.properties.category === 'bidang' && String(f.properties.id) === String(clickedId));
                         if (bidang) openViolationModal(bidang);
                         return;
                     }
@@ -2496,7 +2527,7 @@
                 map.on('mousemove', (e) => {
                     if (isMeasurementMode || activeDrawType) return;
 
-                    const violFeatures = map.queryRenderedFeatures(e.point, { layers: ['cadastre-violation-marker'] });
+                    const violFeatures = map.queryRenderedFeatures(hitBoxAround(e.point, 8), { layers: ['cadastre-violation-marker'] });
                     if (violFeatures.length) {
                         map.getCanvas().style.cursor = 'pointer';
                         if (!activePopup) {

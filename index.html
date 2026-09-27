@@ -42,6 +42,9 @@
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
     <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
 
+    <!-- topojson-client: dipakai untuk mendukung import format TopoJSON (.topojson) -->
+    <script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+
     <!-- jsPDF for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -322,17 +325,17 @@
         <div id="digitize-buttons-container" class="card-panel hidden">
             <span style="font-size: 10px; font-weight: bold; color: #f59e0b; text-transform: uppercase; display: block; margin-bottom: 8px;">Tools Editor & Digitasi</span>
             
-            <input type="file" id="input-import-2d" accept=".zip,.geojson,.json" class="hidden">
-            <input type="file" id="input-import-3d" accept=".zip,.geojson,.json" class="hidden">
-            <input type="file" id="input-import-jalan" accept=".zip,.geojson,.json" class="hidden">
-            <input type="file" id="input-import-aoi" accept=".zip,.geojson,.json" class="hidden">
+            <input type="file" id="input-import-2d" accept=".zip,.geojson,.json,.kml,.gpx,.topojson" class="hidden">
+            <input type="file" id="input-import-3d" accept=".zip,.geojson,.json,.kml,.gpx,.topojson" class="hidden">
+            <input type="file" id="input-import-jalan" accept=".zip,.geojson,.json,.kml,.gpx,.topojson" class="hidden">
+            <input type="file" id="input-import-aoi" accept=".zip,.geojson,.json,.kml,.gpx,.topojson" class="hidden">
 
             <span style="font-size: 9px; color: #94a3b8; display: block; margin: 4px 0;">1. Digitasi Peta</span>
             <button id="btn-draw-parcel" class="btn-action-info"><i class="fa-solid fa-draw-polygon"></i> + Gambar Persil 2D</button>
             <button id="btn-draw-road" class="btn-action-info" style="color: #a7f3d0;"><i class="fa-solid fa-road"></i> + Gambar Jalan</button>
             <button id="btn-draw-3d" class="btn-action-info" style="color: #38bdf8;"><i class="fa-solid fa-cubes"></i> + Gambar Bangunan 3D</button>
 
-            <span style="font-size: 9px; color: #94a3b8; display: block; margin: 8px 0 4px 0;">2. Import File (SHP Zip / GeoJSON)</span>
+            <span style="font-size: 9px; color: #94a3b8; display: block; margin: 8px 0 4px 0;" title="Format didukung: SHP (dalam .zip), GeoJSON/JSON, KML, GPX, TopoJSON">2. Import File (SHP / GeoJSON / KML / GPX / TopoJSON)</span>
             <button id="btn-upload-2d" class="btn-action-info"><i class="fa-solid fa-upload"></i> Upload Persil 2D</button>
             <button id="btn-upload-road" class="btn-action-info" style="color: #a7f3d0;"><i class="fa-solid fa-road"></i> Upload Data Jalan (2D Line/String)</button>
             <button id="btn-upload-3d" class="btn-action-info" style="color: #38bdf8;"><i class="fa-solid fa-building"></i> Upload Bangunan 3D</button>
@@ -2713,6 +2716,140 @@
                 return null;
             }
 
+            /* ===================== KONVERSI KML / GPX -> GEOJSON ===================== */
+            // Parser ringan tanpa dependency eksternal (pakai DOMParser bawaan browser),
+            // supaya import KML/GPX tidak bergantung pada CDN pihak ketiga yang mungkin
+            // lambat/gagal dimuat. Mendukung geometri yang paling umum dipakai untuk data
+            // kadaster: Point, LineString, Polygon (KML) dan waypoint/track/route (GPX).
+
+            function kmlCoordsToArray(text) {
+                // Format KML: "lon,lat,alt lon,lat,alt ..." (alt opsional)
+                return text.trim().split(/\s+/).filter(Boolean).map(pair => {
+                    const p = pair.split(',').map(Number);
+                    return [p[0], p[1]];
+                });
+            }
+
+            function kmlGeometryFromNode(node) {
+                const tag = node.tagName;
+                if (tag === 'Point') {
+                    const c = node.getElementsByTagName('coordinates')[0];
+                    if (!c) return null;
+                    return { type: 'Point', coordinates: kmlCoordsToArray(c.textContent)[0] };
+                }
+                if (tag === 'LineString') {
+                    const c = node.getElementsByTagName('coordinates')[0];
+                    if (!c) return null;
+                    return { type: 'LineString', coordinates: kmlCoordsToArray(c.textContent) };
+                }
+                if (tag === 'Polygon') {
+                    const rings = [];
+                    const outer = node.getElementsByTagName('outerBoundaryIs')[0];
+                    const outerCoord = outer ? outer.getElementsByTagName('coordinates')[0] : null;
+                    if (outerCoord) rings.push(kmlCoordsToArray(outerCoord.textContent));
+                    const inners = node.getElementsByTagName('innerBoundaryIs');
+                    for (let i = 0; i < inners.length; i++) {
+                        const ic = inners[i].getElementsByTagName('coordinates')[0];
+                        if (ic) rings.push(kmlCoordsToArray(ic.textContent));
+                    }
+                    return rings.length ? { type: 'Polygon', coordinates: rings } : null;
+                }
+                if (tag === 'MultiGeometry') {
+                    const geoms = [];
+                    ['Point', 'LineString', 'Polygon'].forEach(t => {
+                        const children = node.getElementsByTagName(t);
+                        for (let i = 0; i < children.length; i++) {
+                            const g = kmlGeometryFromNode(children[i]);
+                            if (g) geoms.push(g);
+                        }
+                    });
+                    return geoms.length ? { type: 'GeometryCollection', geometries: geoms } : null;
+                }
+                return null;
+            }
+
+            function parseKmlToGeoJSON(xmlDoc) {
+                const placemarks = xmlDoc.getElementsByTagName('Placemark');
+                const features = [];
+                for (let i = 0; i < placemarks.length; i++) {
+                    const pm = placemarks[i];
+                    let geometry = null;
+                    for (const tag of ['Point', 'LineString', 'Polygon', 'MultiGeometry']) {
+                        const el = pm.getElementsByTagName(tag)[0];
+                        // pastikan elemen geometri ini benar milik placemark ini, bukan placemark lain
+                        if (el && (!el.closest || el.closest('Placemark') === pm)) { geometry = kmlGeometryFromNode(el); break; }
+                    }
+                    if (!geometry) continue;
+                    const props = {};
+                    const nameEl = pm.getElementsByTagName('name')[0];
+                    if (nameEl) props.name = nameEl.textContent.trim();
+                    const descEl = pm.getElementsByTagName('description')[0];
+                    if (descEl) props.description = descEl.textContent.trim();
+                    // <ExtendedData><Data name="X"><value>Y</value></Data></ExtendedData>
+                    const dataEls = pm.getElementsByTagName('Data');
+                    for (let d = 0; d < dataEls.length; d++) {
+                        const key = dataEls[d].getAttribute('name');
+                        const valEl = dataEls[d].getElementsByTagName('value')[0];
+                        if (key) props[key] = valEl ? valEl.textContent.trim() : '';
+                    }
+                    // <ExtendedData><SchemaData><SimpleData name="X">Y</SimpleData></SchemaData></ExtendedData>
+                    const simpleDataEls = pm.getElementsByTagName('SimpleData');
+                    for (let d = 0; d < simpleDataEls.length; d++) {
+                        const key = simpleDataEls[d].getAttribute('name');
+                        if (key) props[key] = simpleDataEls[d].textContent.trim();
+                    }
+                    features.push({ type: 'Feature', geometry, properties: props });
+                }
+                return { type: 'FeatureCollection', features };
+            }
+
+            function parseGpxToGeoJSON(xmlDoc) {
+                const features = [];
+                const wpts = xmlDoc.getElementsByTagName('wpt');
+                for (let i = 0; i < wpts.length; i++) {
+                    const el = wpts[i];
+                    const lat = parseFloat(el.getAttribute('lat'));
+                    const lon = parseFloat(el.getAttribute('lon'));
+                    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+                    const nameEl = el.getElementsByTagName('name')[0];
+                    features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: { name: nameEl ? nameEl.textContent.trim() : '' } });
+                }
+                const tracks = xmlDoc.getElementsByTagName('trk');
+                for (let i = 0; i < tracks.length; i++) {
+                    const trk = tracks[i];
+                    const nameEl = trk.getElementsByTagName('name')[0];
+                    const segs = trk.getElementsByTagName('trkseg');
+                    for (let s = 0; s < segs.length; s++) {
+                        const pts = segs[s].getElementsByTagName('trkpt');
+                        const coords = [];
+                        for (let p = 0; p < pts.length; p++) {
+                            const lat = parseFloat(pts[p].getAttribute('lat'));
+                            const lon = parseFloat(pts[p].getAttribute('lon'));
+                            if (Number.isFinite(lat) && Number.isFinite(lon)) coords.push([lon, lat]);
+                        }
+                        if (coords.length > 1) {
+                            features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: { name: nameEl ? nameEl.textContent.trim() : '' } });
+                        }
+                    }
+                }
+                const routes = xmlDoc.getElementsByTagName('rte');
+                for (let i = 0; i < routes.length; i++) {
+                    const rte = routes[i];
+                    const nameEl = rte.getElementsByTagName('name')[0];
+                    const pts = rte.getElementsByTagName('rtept');
+                    const coords = [];
+                    for (let p = 0; p < pts.length; p++) {
+                        const lat = parseFloat(pts[p].getAttribute('lat'));
+                        const lon = parseFloat(pts[p].getAttribute('lon'));
+                        if (Number.isFinite(lat) && Number.isFinite(lon)) coords.push([lon, lat]);
+                    }
+                    if (coords.length > 1) {
+                        features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: { name: nameEl ? nameEl.textContent.trim() : '' } });
+                    }
+                }
+                return { type: 'FeatureCollection', features };
+            }
+
             // Menerjemahkan properti mentah hasil import ke skema atribut internal aplikasi,
             // sesuai kategori (bidang / bangunan / jalan). Nilai yang tidak dikenali akan
             // dikembalikan sebagai undefined agar nilai default bawaan tetap berlaku.
@@ -2801,10 +2938,31 @@
             async function handleImportFile(file, category) {
                 try {
                     let geojson;
-                    if (/\.zip$/i.test(file.name)) {
+                    const fname = file.name.toLowerCase();
+                    if (/\.zip$/i.test(fname)) {
+                        // Shapefile (dalam arsip .zip berisi .shp/.shx/.dbf/.prj)
                         const buffer = await file.arrayBuffer();
                         geojson = await shp(buffer);
+                    } else if (/\.kml$/i.test(fname)) {
+                        const text = await file.text();
+                        const xmlDoc = new DOMParser().parseFromString(text, 'text/xml');
+                        geojson = parseKmlToGeoJSON(xmlDoc);
+                    } else if (/\.gpx$/i.test(fname)) {
+                        const text = await file.text();
+                        const xmlDoc = new DOMParser().parseFromString(text, 'text/xml');
+                        geojson = parseGpxToGeoJSON(xmlDoc);
+                    } else if (/\.topojson$/i.test(fname)) {
+                        const text = await file.text();
+                        const topo = JSON.parse(text);
+                        const allFeats = [];
+                        Object.keys(topo.objects || {}).forEach(key => {
+                            const fc = topojson.feature(topo, topo.objects[key]);
+                            if (fc.type === 'FeatureCollection') allFeats.push(...fc.features);
+                            else if (fc.type === 'Feature') allFeats.push(fc);
+                        });
+                        geojson = { type: 'FeatureCollection', features: allFeats };
                     } else {
+                        // .geojson / .json (juga dipakai sebagai fallback default)
                         const text = await file.text();
                         geojson = JSON.parse(text);
                     }

@@ -787,6 +787,15 @@
             // yang dimuat secara realtime oleh setupFirestoreSync() -> onSnapshot.
             let cadastreData = { type: "FeatureCollection", features: [] };
 
+            // Cache indeks spasial ringan (bbox + centroid + luas per bangunan), dipakai untuk
+            // mempercepat perhitungan kepatuhan KDB/RTH (calcBidangCompliance) saat data banyak
+            // (mis. hasil import ratusan/ribuan fitur). Cache ini otomatis dianggap kedaluwarsa
+            // (di-null-kan) setiap kali cadastreData berubah lewat refreshCadastreSource(), jadi
+            // hasil perhitungan TETAP selalu memakai data terkini -- ini murni optimasi kecepatan,
+            // tidak mengubah bentuk/fungsi/hasil perhitungan sama sekali.
+            let _buildingsIndexCache = null;
+            let _refreshCadastreTimer = null;
+
             const basemapSources = {
                 'esri_sat': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 },
                 'carto_dark': { type: 'raster', tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], tileSize: 256 },
@@ -1024,6 +1033,7 @@
                     layerVisibility.bidang = e.target.checked;
                     if (map.getLayer('cadastre-fill')) map.setLayoutProperty('cadastre-fill', 'visibility', vis);
                     if (map.getLayer('cadastre-line')) map.setLayoutProperty('cadastre-line', 'visibility', vis);
+                    if (map.getLayer('cadastre-line-hit')) map.setLayoutProperty('cadastre-line-hit', 'visibility', vis);
                     if (map.getLayer('cadastre-violation-marker')) map.setLayoutProperty('cadastre-violation-marker', 'visibility', vis);
                 });
 
@@ -1083,13 +1093,58 @@
                 }
             }
 
+            // Cek cepat (murah) apakah dua bounding box beririsan. Dipakai sebagai penyaring
+            // awal sebelum uji point-in-polygon yang jauh lebih mahal secara komputasi: jika
+            // bbox dua fitur sama sekali tidak beririsan, titik tengah bangunan PASTI tidak
+            // mungkin berada di dalam poligon bidang, sehingga uji point-in-polygon bisa
+            // dilewati dengan aman -- hasil akhir (fitur mana yang cocok) tetap identik,
+            // hanya lebih cepat untuk dataset besar.
+            function bboxesOverlap(a, b) {
+                return a[0] <= b[2] && b[0] <= a[2] && a[1] <= b[3] && b[1] <= a[3];
+            }
+
+            // Membangun indeks ringan seluruh fitur bangunan (bbox + centroid, dihitung SEKALI
+            // saja) untuk dipakai berulang kali oleh calcBidangCompliance saat memeriksa banyak
+            // bidang sekaligus (mis. updateStats/getViolatingBidangIds atas seluruh dataset).
+            // Tanpa cache ini, setiap bidang akan memicu turf.centroid() ulang untuk SEMUA
+            // bangunan yang ada -- sangat berat saat data hasil import berjumlah besar.
+            function getBuildingsIndex() {
+                if (_buildingsIndexCache) return _buildingsIndexCache;
+                const list = [];
+                cadastreData.features.forEach(f => {
+                    if (f.properties.category !== 'bangunan') return;
+                    let bbox = null, centroid = null;
+                    try { bbox = turf.bbox(f); } catch (err) {}
+                    try { centroid = turf.centroid(f); } catch (err) {}
+                    list.push({ feature: f, bbox, centroid });
+                });
+                _buildingsIndexCache = list;
+                return _buildingsIndexCache;
+            }
+
             function calcBidangCompliance(bidangFeature) {
                 const bidangArea = turf.area(bidangFeature);
-                const buildings = cadastreData.features.filter(f =>
-                    f.properties.category === 'bangunan' &&
-                    (f.properties.nib && bidangFeature.properties.nib && f.properties.nib === bidangFeature.properties.nib
-                        || isBuildingInParcel(f, bidangFeature))
-                );
+                const bidangNib = bidangFeature.properties.nib;
+                let bidangBbox = null;
+                try { bidangBbox = turf.bbox(bidangFeature); } catch (err) {}
+
+                // Logika pencocokan bangunan->bidang SAMA PERSIS dengan sebelumnya (cocok NIB
+                // ATAU titik tengah bangunan berada di dalam poligon bidang), hanya dipercepat:
+                // bbox dipakai untuk melewati uji point-in-polygon yang mahal saat bbox jelas
+                // tidak beririsan, dan daftar bangunan diambil dari indeks cache (dihitung
+                // sekali) alih-alih memanggil turf.centroid() berulang untuk data yang sama.
+                const buildings = [];
+                const buildingsIndex = getBuildingsIndex();
+                for (let i = 0; i < buildingsIndex.length; i++) {
+                    const entry = buildingsIndex[i];
+                    const b = entry.feature;
+                    const nibMatch = !!(b.properties.nib && bidangNib && b.properties.nib === bidangNib);
+                    if (nibMatch) { buildings.push(b); continue; }
+                    if (bidangBbox && entry.bbox && !bboxesOverlap(bidangBbox, entry.bbox)) continue;
+                    try {
+                        if (entry.centroid && turf.booleanPointInPolygon(entry.centroid, bidangFeature)) buildings.push(b);
+                    } catch (err) {}
+                }
 
                 let bgnArea = 0;
                 buildings.forEach(b => {
@@ -1703,12 +1758,29 @@
                 ALL_FEATURE_COLLECTIONS.forEach(colName => subscribeFeatureCollection(colName));
             }
 
+            // refreshCadastreSource() dipanggil setiap kali cadastreData berubah (tambah/edit/
+            // hapus fitur, termasuk dari listener realtime Firestore). Saat import data dalam
+            // jumlah besar, setiap fitur yang tersimpan ke Firestore dapat memicu event
+            // realtime terpisah, yang tanpa optimasi ini masing-masing akan menjalankan ULANG
+            // map.setData() + rekalkulasi kepatuhan KDB/RTH untuk SELURUH dataset -- inilah
+            // penyebab utama webgis terasa berat saat import. Di sini, indeks bangunan
+            // langsung dianggap kedaluwarsa (murah, instan) supaya perhitungan berikutnya
+            // selalu memakai data terbaru, sementara pekerjaan berat (render ulang peta +
+            // hitung ulang semua status pelanggaran/statistik) DIGABUNG (debounce) sehingga
+            // beberapa pemanggilan yang terjadi berdekatan hanya benar-benar dieksekusi SATU
+            // KALI. Tidak ada fitur/bentuk/fungsi yang hilang -- hasil akhirnya tetap sama,
+            // hanya dieksekusi lebih efisien.
             function refreshCadastreSource() {
-                if (map.getSource('cadastre-source')) {
-                    map.getSource('cadastre-source').setData(cadastreData);
-                }
-                refreshViolationMarkers();
-                updateStats();
+                _buildingsIndexCache = null;
+                if (_refreshCadastreTimer) clearTimeout(_refreshCadastreTimer);
+                _refreshCadastreTimer = setTimeout(() => {
+                    _refreshCadastreTimer = null;
+                    if (map.getSource('cadastre-source')) {
+                        map.getSource('cadastre-source').setData(cadastreData);
+                    }
+                    refreshViolationMarkers();
+                    updateStats();
+                }, 80);
             }
 
             function initMapLayers() {
@@ -1763,6 +1835,21 @@
                         ],
                         'line-width': 2.5
                     }
+                });
+
+                // Layer "hit-area" TIDAK TERLIHAT (opacity 0) khusus untuk deteksi klik/tap pada
+                // GARIS PINGGIR (outline) bidang tanah. Outline visual (cadastre-line di atas)
+                // sengaja dibuat tipis (2.5px) agar rapi secara kartografis, namun garis setipis
+                // itu sulit ditekan secara presisi (terutama di layar sentuh/mobile). Layer ini
+                // menggandakan geometri garis yang sama tetapi dengan lebar hit-test jauh lebih
+                // besar (16px) dan transparan penuh, sehingga PINGGIRAN/OUTLINE bidang dapat
+                // ditekan untuk memunculkan panel atribut, tanpa mengubah tampilan visual apa pun.
+                map.addLayer({
+                    id: 'cadastre-line-hit',
+                    type: 'line',
+                    source: 'cadastre-source',
+                    filter: ['==', ['get', 'category'], 'bidang'],
+                    paint: { 'line-color': '#000000', 'line-opacity': 0, 'line-width': 16 }
                 });
 
                 map.addLayer({
@@ -1827,8 +1914,12 @@
                         return;
                     }
 
+                    // Sertakan 'cadastre-line-hit' (garis pinggir/outline bidang dengan area
+                    // tekan yang diperlebar secara tak-terlihat) supaya menekan PINGGIRAN suatu
+                    // bidang tanah (baik hasil import maupun hasil gambar manual) juga membuka
+                    // panel atribut, persis seperti menekan bagian dalam bidang / bangunan 3D.
                     const features = map.queryRenderedFeatures(e.point, {
-                        layers: ['cadastre-fill', 'cadastre-3d-extrusion', 'cadastre-road-line']
+                        layers: ['cadastre-fill', 'cadastre-line-hit', 'cadastre-3d-extrusion', 'cadastre-road-line']
                     });
 
                     if (!features.length) return;
@@ -1910,16 +2001,16 @@
                 filterZonaSelect.addEventListener('change', (e) => {
                     const val = e.target.value;
                     if (val === 'ALL') {
-                        map.setFilter('cadastre-fill', ['==', ['get', 'category'], 'bidang']);
+                        setBidangFillFilter(['==', ['get', 'category'], 'bidang']);
                     } else {
-                        map.setFilter('cadastre-fill', ['all', ['==', ['get', 'category'], 'bidang'], ['==', ['get', 'zona'], val]]);
+                        setBidangFillFilter(['all', ['==', ['get', 'category'], 'bidang'], ['==', ['get', 'zona'], val]]);
                     }
                 });
 
                 btnResetFilter.addEventListener('click', () => {
                     searchInput.value = '';
                     filterZonaSelect.value = 'ALL';
-                    map.setFilter('cadastre-fill', ['==', ['get', 'category'], 'bidang']);
+                    setBidangFillFilter(['==', ['get', 'category'], 'bidang']);
                     searchResults.classList.add('hidden');
 
                     violationsFilterActive = false;
@@ -1939,15 +2030,25 @@
                             violationsFilterActive = false;
                             return;
                         }
-                        map.setFilter('cadastre-fill', ['all', ['==', ['get', 'category'], 'bidang'], ['in', ['get', 'id'], ['literal', violatingIds]]]);
+                        setBidangFillFilter(['all', ['==', ['get', 'category'], 'bidang'], ['in', ['get', 'id'], ['literal', violatingIds]]]);
                         btn.classList.remove('btn-mode-inactive');
                         btn.classList.add('btn-mode-active');
                     } else {
-                        map.setFilter('cadastre-fill', ['==', ['get', 'category'], 'bidang']);
+                        setBidangFillFilter(['==', ['get', 'category'], 'bidang']);
                         btn.classList.remove('btn-mode-active');
                         btn.classList.add('btn-mode-inactive');
                     }
                 });
+            }
+
+            // Menerapkan filter yang sama ke layer isi bidang ('cadastre-fill') SEKALIGUS
+            // layer hit-area outline-nya ('cadastre-line-hit'), supaya bidang yang sedang
+            // disembunyikan oleh filter (zona / pelanggaran) juga tidak bisa "ditekan
+            // pinggirannya" untuk membuka panel atribut -- konsisten dengan bagian
+            // dalamnya yang memang ikut tersaring dari interaksi klik.
+            function setBidangFillFilter(filterExpr) {
+                map.setFilter('cadastre-fill', filterExpr);
+                if (map.getLayer('cadastre-line-hit')) map.setFilter('cadastre-line-hit', filterExpr);
             }
 
             /* ===================== DIGITASI / DRAWING TOOLS ===================== */
@@ -2277,7 +2378,7 @@
                     }
 
                     const features = map.queryRenderedFeatures(e.point, {
-                        layers: ['cadastre-fill', 'cadastre-3d-extrusion', 'cadastre-road-line']
+                        layers: ['cadastre-fill', 'cadastre-line-hit', 'cadastre-3d-extrusion', 'cadastre-road-line']
                     });
 
                     if (features.length) {

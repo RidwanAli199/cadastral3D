@@ -336,6 +336,10 @@
             <button id="btn-draw-3d" class="btn-action-info" style="color: #38bdf8;"><i class="fa-solid fa-cubes"></i> + Gambar Bangunan 3D</button>
 
             <span style="font-size: 9px; color: #94a3b8; display: block; margin: 8px 0 4px 0;" title="Format didukung: SHP (dalam .zip), GeoJSON/JSON, KML, GPX, TopoJSON">2. Import File (SHP / GeoJSON / KML / GPX / TopoJSON)</span>
+            <label class="layer-toggle-item" style="margin-bottom: 6px;" title="Jika aktif, data lama (bidang/bangunan/AOI) yang lokasinya tumpang-tindih dengan data hasil import akan otomatis dihapus dan digantikan oleh data baru.">
+                <span><i class="fa-solid fa-arrows-rotate"></i> Timpa Data Lama yang Tumpang-Tindih</span>
+                <input type="checkbox" id="chk-replace-overlap" checked>
+            </label>
             <button id="btn-upload-2d" class="btn-action-info"><i class="fa-solid fa-upload"></i> Upload Persil 2D</button>
             <button id="btn-upload-road" class="btn-action-info" style="color: #a7f3d0;"><i class="fa-solid fa-road"></i> Upload Data Jalan (2D Line/String)</button>
             <button id="btn-upload-3d" class="btn-action-info" style="color: #38bdf8;"><i class="fa-solid fa-building"></i> Upload Bangunan 3D</button>
@@ -2986,6 +2990,16 @@
                     let autoNibCount = 0;
                     const importedFeatures = [];
 
+                    // Snapshot data yang SUDAH ADA di peta sebelum proses import ini dimulai.
+                    // Dipakai untuk mendeteksi tumpang-tindih lokasi (data lama akan ditimpa),
+                    // tanpa membandingkan fitur baru dengan sesama fitur baru yang sedang diimpor.
+                    const replaceOverlapEnabled = !!(document.getElementById('chk-replace-overlap') &&
+                        document.getElementById('chk-replace-overlap').checked);
+                    const featuresBeforeImport = cadastreData.features.slice();
+                    const replacedIds = new Set();
+                    const replacedFeatureRefs = []; // { id, category, sumber } - untuk dihapus dari Firestore
+                    let replacedCount = 0;
+
                     feats.forEach((f, idx) => {
                         const rawProps = f.properties || {};
 
@@ -3035,6 +3049,38 @@
                             f.properties.perkerasan = f.properties.perkerasan || 'Aspal Hotmix';
                         }
 
+                        // Deteksi tumpang-tindih lokasi: jika sudah ada objek bidang/bangunan/AOI
+                        // pada lokasi yang sama (geometrinya beririsan) dengan fitur yang baru
+                        // diimpor, data lama tersebut dihapus dan digantikan oleh data baru.
+                        // Hanya berlaku untuk kategori berbasis polygon (bidang, bangunan, aoi) —
+                        // Jalan (LineString) sengaja tidak diikutkan karena garis-garis jalan yang
+                        // saling bersinggungan/berbagi titik adalah hal yang wajar, bukan duplikasi.
+                        if (replaceOverlapEnabled && f.geometry &&
+                            (effectiveCategory === 'bidang' || effectiveCategory === 'bangunan' || effectiveCategory === 'aoi')) {
+                            featuresBeforeImport.forEach(ef => {
+                                if (replacedIds.has(ef.properties.id)) return;
+                                if (ef.properties.category !== effectiveCategory) return;
+                                if (!ef.geometry) return;
+                                let overlaps = false;
+                                try {
+                                    overlaps = turf.booleanIntersects(f, ef);
+                                } catch (errIntersect) {
+                                    overlaps = false; // geometri tidak valid untuk diuji, lewati dengan aman
+                                }
+                                if (overlaps) {
+                                    replacedIds.add(ef.properties.id);
+                                    replacedFeatureRefs.push({
+                                        id: ef.properties.id,
+                                        category: ef.properties.category,
+                                        sumber: ef.properties.sumber
+                                    });
+                                    const idxExisting = cadastreData.features.findIndex(cf => cf.properties.id === ef.properties.id);
+                                    if (idxExisting !== -1) cadastreData.features.splice(idxExisting, 1);
+                                    replacedCount++;
+                                }
+                            });
+                        }
+
                         cadastreData.features.push(f);
                         importedFeatures.push(f);
                     });
@@ -3069,6 +3115,16 @@
                         console.warn('Gagal menghitung bounding box data hasil import:', err);
                     }
 
+                    // Hapus permanen dari Firestore setiap data lama yang tergantikan (tumpang-tindih
+                    // lokasi dengan data hasil import), juga dilakukan bertahap per-batch.
+                    let replaceDeleteFailCount = 0;
+                    const BATCH_SIZE_DEL = 25;
+                    for (let i = 0; i < replacedFeatureRefs.length; i += BATCH_SIZE_DEL) {
+                        const batchDel = replacedFeatureRefs.slice(i, i + BATCH_SIZE_DEL);
+                        const resultsDel = await Promise.all(batchDel.map(rf => removeFeatureRemote(rf.id, rf.category, rf.sumber)));
+                        resultsDel.forEach(r => { if (!r.ok) replaceDeleteFailCount++; });
+                    }
+
                     // Simpan setiap fitur ke Firestore secara bertahap per-batch (bukan ribuan
                     // request sekaligus yang rawan gagal/timeout), sambil menghitung berapa yang
                     // benar-benar berhasil vs gagal, supaya kegagalan simpan langsung dilaporkan
@@ -3095,6 +3151,12 @@
                     }
                     if (autoNibCount > 0) {
                         msg += ` ${autoNibCount} fitur tidak memiliki NIB pada data asal sehingga NIB dibuatkan otomatis oleh sistem.`;
+                    }
+                    if (replacedCount > 0) {
+                        msg += ` ${replacedCount} data lama yang lokasinya tumpang-tindih dengan data baru telah DIHAPUS dan digantikan.`;
+                        if (replaceDeleteFailCount > 0) {
+                            msg += ` (Peringatan: ${replaceDeleteFailCount} dari data lama tersebut gagal terhapus permanen di server, kemungkinan masih tersisa saat halaman di-refresh.)`;
+                        }
                     }
 
                     if (failedCount === 0) {

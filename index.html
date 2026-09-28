@@ -651,20 +651,6 @@
         </div>
     </div>
 
-    <!-- Modal proses (gear berputar): ditampilkan selama import/penimpaan data berlangsung, dan
-         disembunyikan begitu prosesnya selesai (langsung disusul oleh custom-alert-modal berisi
-         ringkasan hasilnya, termasuk jumlah data lama yang ditimpa). Tanpa tombol tutup -- pengguna
-         tidak bisa membatalkannya di tengah proses, sesuai perilaku modal proses pada umumnya. -->
-    <div id="process-loading-modal" class="modal-overlay hidden" style="z-index: 210;">
-        <div class="modal-box" style="max-width: 300px; text-align: center;">
-            <div style="font-size: 34px; color: #38bdf8; margin-bottom: 12px;">
-                <i class="fa-solid fa-gear fa-spin"></i>
-            </div>
-            <p id="process-loading-title" style="font-size: 13px; font-weight: 600; color: #f8fafc; margin-bottom: 4px;">Memproses Data...</p>
-            <p id="process-loading-message" style="font-size: 11px; color: #94a3b8; line-height: 1.5;">Mohon tunggu, jangan tutup halaman.</p>
-        </div>
-    </div>
-
     <div id="custom-confirm-modal" class="modal-overlay hidden" style="z-index: 200;">
         <div class="modal-box" style="max-width: 340px; text-align: center;">
             <div style="font-size: 32px; color: #f59e0b; margin-bottom: 10px;">
@@ -707,13 +693,13 @@
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'cadastral-webgis-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyBLDA0LYBHuvkgriAesLuN4m1IAUXxdREs",
-          authDomain: "kadaster3d-553f7.firebaseapp.com",
-          projectId: "kadaster3d-553f7",
-          storageBucket: "kadaster3d-553f7.firebasestorage.app",
-          messagingSenderId: "863734518019",
-          appId: "1:863734518019:web:d0fda497276cb0b2785936",
-          measurementId: "G-HYZTV95W5T"
+             apiKey: "AIzaSyCBuYz9WczipcNuLEMo5z31e43O4cFdycs",
+            authDomain: "cadastral3d-97363.firebaseapp.com",
+            projectId: "cadastral3d-97363",
+            storageBucket: "cadastral3d-97363.firebasestorage.app",
+            messagingSenderId: "206606149590",
+            appId: "1:206606149590:web:ca6fcdaa290e13770ea677",
+            measurementId: "G-ZKW22VS6M3"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -871,26 +857,6 @@
                     iconEl.style.color = iconColor;
                 }
                 modal.classList.remove('hidden');
-            }
-
-            // Modal proses (gear berputar): dipakai untuk menandai proses yang sedang berjalan di
-            // latar belakang (mis. import file & penimpaan data lama yang tumpang-tindih), supaya
-            // pengguna tahu aplikasi masih bekerja dan bukan macet/diam. showProcessLoading() dapat
-            // dipanggil ulang dengan pesan baru untuk memperbarui teks status tanpa menutup modalnya
-            // (gear tetap berputar terus). hideProcessLoading() menghentikan (menyembunyikan) modal
-            // ini begitu prosesnya selesai -- gear berhenti "berputar" secara visual saat modal
-            // ditutup, menandakan prosesnya sudah tuntas.
-            function showProcessLoading(message, title = 'Memproses Data...') {
-                const modal = document.getElementById('process-loading-modal');
-                const titleEl = document.getElementById('process-loading-title');
-                const msgEl = document.getElementById('process-loading-message');
-                if (titleEl) titleEl.textContent = title;
-                if (msgEl) msgEl.textContent = message || 'Mohon tunggu, jangan tutup halaman.';
-                if (modal) modal.classList.remove('hidden');
-            }
-            function hideProcessLoading() {
-                const modal = document.getElementById('process-loading-modal');
-                if (modal) modal.classList.add('hidden');
             }
 
             function showConfirm(msg, callback) {
@@ -3062,7 +3028,6 @@
 
             async function handleImportFile(file, category) {
                 try {
-                    showProcessLoading('Membaca & mengurai file import...', 'Memproses Data...');
                     let geojson;
                     const fname = file.name.toLowerCase();
                     if (/\.zip$/i.test(fname)) {
@@ -3122,7 +3087,6 @@
                     const replacedFeatureRefs = []; // { id, category, sumber } - untuk dihapus dari Firestore
                     let replacedCount = 0;
 
-                    showProcessLoading(`Memeriksa ${feats.length} fitur${replaceOverlapEnabled ? ' & mendeteksi data lama yang tumpang-tindih' : ''}...`);
                     feats.forEach((f, idx) => {
                         const rawProps = f.properties || {};
 
@@ -3220,7 +3184,6 @@
                     // Dijalankan terhadap SELURUH data di peta (bukan cuma yang baru diimpor), supaya
                     // data lama yang sebelumnya belum punya pasangan juga ikut ter-update begitu
                     // pasangannya baru saja diimpor.
-                    showProcessLoading('Menyesuaikan warna bidang/bangunan berdasarkan peruntukan & fungsi...');
                     const reconciledFeatures = reconcileZonaFungsiByNib();
                     const reconciledCount = reconciledFeatures.length;
                     // Fitur hasil reconciliation yang BUKAN bagian dari batch import kali ini (artinya
@@ -3262,9 +3225,6 @@
                     // lokasi dengan data hasil import), juga dilakukan bertahap per-batch.
                     let replaceDeleteFailCount = 0;
                     const BATCH_SIZE_DEL = 25;
-                    if (replacedFeatureRefs.length > 0) {
-                        showProcessLoading(`Menimpa ${replacedFeatureRefs.length} data lama yang tumpang-tindih...`);
-                    }
                     for (let i = 0; i < replacedFeatureRefs.length; i += BATCH_SIZE_DEL) {
                         const batchDel = replacedFeatureRefs.slice(i, i + BATCH_SIZE_DEL);
                         const resultsDel = await Promise.all(batchDel.map(rf => removeFeatureRemote(rf.id, rf.category, rf.sumber)));
@@ -3279,7 +3239,6 @@
                     let failedCount = 0;
                     let lastFailReason = null;
                     const BATCH_SIZE = 25;
-                    showProcessLoading(`Menyimpan ${importedFeatures.length} data baru ke server...`);
                     for (let i = 0; i < importedFeatures.length; i += BATCH_SIZE) {
                         const batch = importedFeatures.slice(i, i + BATCH_SIZE);
                         const results = await Promise.all(batch.map(bf => persistFeature(bf)));
@@ -3318,18 +3277,15 @@
 
                     if (failedCount === 0) {
                         msg += ' Seluruh data berhasil disimpan permanen ke server (Firestore).';
-                        hideProcessLoading();
                         showAlert(msg + bboxWarning, 'fa-circle-check', bboxWarning ? '#f59e0b' : '#10b981');
                     } else {
                         msg += ` PERINGATAN: ${failedCount} dari ${feats.length} fitur GAGAL disimpan ke server` +
                             (lastFailReason ? ` (penyebab: ${lastFailReason})` : '') +
                             '. Fitur tersebut hanya tersimpan sementara di layar Anda dan akan HILANG saat halaman di-refresh.';
-                        hideProcessLoading();
                         showAlert(msg + bboxWarning, 'fa-triangle-exclamation', '#f43f5e');
                     }
                 } catch (err) {
                     console.error(err);
-                    hideProcessLoading();
                     showAlert('Gagal mengimpor file: ' + (err.message || 'Format file tidak didukung.'), 'fa-triangle-exclamation', '#f43f5e');
                 }
             }
